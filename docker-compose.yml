@@ -1,0 +1,205 @@
+version: '3.8'
+
+services:
+  # ========================================
+  # SERVICIOS BACKEND
+  # ========================================
+  
+  ai-ticket-processor:
+    build:
+      context: ./modules/backend/ai-ticket-processor
+      dockerfile: Dockerfile
+    container_name: tfg_ai_ticket_processor
+    restart: unless-stopped
+    environment:
+      - GEMINI_API_KEY=
+      - PORT=${AI_TICKET_PROCESSOR_PORT:-8004}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - DEBUG=${DEBUG:-false}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+    volumes:
+      - ./modules/backend/ai-ticket-processor/images:/app/images:ro
+    ports:
+      - "${AI_TICKET_PROCESSOR_PORT:-8004}:8004"
+    networks:
+      - tfg_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  ticket-service:
+    build:
+      context: ./modules/backend/ticket-service
+      dockerfile: Dockerfile
+    container_name: tfg_ticket_service
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://ticket_user:ticket_password@postgres:5432/ticket_analytics
+      - HOST=0.0.0.0
+      - PORT=8003
+      - UPLOAD_DIR=/app/uploads
+      - MAX_FILE_SIZE=10485760
+      - AUTH_SERVICE_URL=http://auth-service:8001
+      - DEBUG=${DEBUG:-false}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - ticket_uploads:/app/uploads
+    ports:
+      - "${TICKET_SERVICE_PORT:-8003}:8003"
+    networks:
+      - tfg_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  backend:
+    build:
+      context: ./modules/backend/main-backend
+      dockerfile: Dockerfile
+    container_name: tfg_backend
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://ticket_user:ticket_password@postgres:5432/ticket_analytics
+      - SECRET_KEY=${SECRET_KEY:-tu_clave_secreta_super_segura_cambiar_en_produccion}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      - GEMINI_API_KEY=AIzaSyA2lqWhE9qSOb3oYBR5VykGZj0GNQTiz3A
+      - AUTH_SERVICE_URL=http://auth-service:8001
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    networks:
+      - tfg_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  auth-service:
+    build:
+      context: ./modules/backend/auth-service
+      dockerfile: Dockerfile
+    container_name: tfg_auth_service
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://ticket_user:ticket_password@postgres:5432/ticket_analytics
+      - SECRET_KEY=${SECRET_KEY:-tu_clave_secreta_super_segura_cambiar_en_produccion}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+    ports:
+      - "${AUTH_SERVICE_PORT:-8001}:8001"
+    networks:
+      - tfg_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ========================================
+  # FRONTEND
+  # ========================================
+  
+  frontend:
+    build:
+      context: ./modules/frontend
+      dockerfile: Dockerfile
+    container_name: tfg_frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    networks:
+      - tfg_network
+    depends_on:
+      - backend
+      - auth-service
+      - ticket-service
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ========================================
+  # BASE DE DATOS
+  # ========================================
+  
+  postgres:
+    build:
+      context: ./modules/databases/postgres
+      dockerfile: Dockerfile
+    container_name: tfg_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ticket_analytics
+      POSTGRES_USER: ticket_user
+      POSTGRES_PASSWORD: ticket_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./modules/databases/postgres/logs:/var/lib/postgresql/log
+    networks:
+      - tfg_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ticket_user -d ticket_analytics"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: tfg_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@ticketanalytics.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "8080:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - tfg_network
+    depends_on:
+      - postgres
+
+# ========================================
+# REDES
+# ========================================
+networks:
+  tfg_network:
+    driver: bridge
+
+# ========================================
+# VOLÚMENES
+# ========================================
+volumes:
+  postgres_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+  ticket_uploads:
+    driver: local 
