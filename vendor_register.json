@@ -1,0 +1,9 @@
+{
+  "email": "vendor@example.com",
+  "email_hash": "vendor@example.com",
+  "password": "123456",
+  "preferences": {
+    "role": "vendor",
+    "username": "Vendor"
+  }
+}

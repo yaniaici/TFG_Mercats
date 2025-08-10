@@ -5,7 +5,7 @@
 CREATE OR REPLACE VIEW user_complete_info AS
 SELECT 
     u.id,
-    u.email_hash,
+    u.email,
     u.registration_date,
     u.preferences,
     u.is_active,
@@ -22,7 +22,7 @@ LEFT JOIN user_profiles up ON u.id = up.user_id;
 CREATE OR REPLACE VIEW user_ticket_stats AS
 SELECT 
     u.id as user_id,
-    u.email_hash,
+    u.email,
     COUNT(t.id) as total_tickets,
     SUM(t.total_price) as total_spent,
     AVG(t.total_price) as avg_ticket_value,
@@ -33,14 +33,14 @@ SELECT
     COUNT(CASE WHEN t.origin = 'API' THEN 1 END) as api_tickets
 FROM users u
 LEFT JOIN tickets t ON u.id = t.user_id
-GROUP BY u.id, u.email_hash;
+GROUP BY u.id, u.email;
 
 -- Vista para tickets con información de usuario
 CREATE OR REPLACE VIEW ticket_with_user AS
 SELECT 
     t.id,
     t.user_id,
-    u.email_hash,
+    u.email,
     t.purchase_datetime,
     t.store_id,
     t.total_price,
@@ -97,7 +97,7 @@ SELECT
     al.new_values,
     al.user_id,
     al.created_at,
-    u.email_hash
+    u.email
 FROM audit_logs al
 LEFT JOIN users u ON al.user_id = u.id
 ORDER BY al.created_at DESC

@@ -4,6 +4,16 @@ from sqlalchemy.sql import func
 import uuid
 from database import Base
 
+class MarketStore(Base):
+    __tablename__ = "market_stores"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String(255), nullable=False, unique=True)
+    description = Column(Text, nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
 class Ticket(Base):
     __tablename__ = "ticket_files"
     
@@ -14,7 +24,7 @@ class Ticket(Base):
     file_path = Column(String(500), nullable=False)
     file_size = Column(Integer, nullable=False)
     mime_type = Column(String(100), nullable=False)
-    status = Column(String(50), default="pending")  # pending, processed, failed
+    status = Column(String(50), default="pending")  # pending, done_rejected, done_approved, failed
     ticket_metadata = Column(JSONB, default={})  # Información adicional del ticket
     processing_result = Column(JSONB, default={})  # Resultado del procesamiento AI
     created_at = Column(DateTime(timezone=True), server_default=func.now())

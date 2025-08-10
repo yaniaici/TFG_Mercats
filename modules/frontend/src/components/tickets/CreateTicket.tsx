@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Webcam from 'react-webcam';
 import axios from 'axios';
+import { useAuth } from '../../contexts/AuthContext';
 import { 
   Camera, 
   X, 
@@ -13,7 +14,13 @@ import {
   Upload
 } from 'lucide-react';
 
+// Crear instancia específica para ticket-service (usar proxy Nginx /tickets)
+const ticketApi = axios.create({
+  baseURL: '/tickets'
+});
+
 const CreateTicket: React.FC = () => {
+  const { user } = useAuth();
   const [image, setImage] = useState<string | null>(null);
   const [showCamera, setShowCamera] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -56,6 +63,11 @@ const CreateTicket: React.FC = () => {
   };
 
   const handleSubmit = async () => {
+    if (!user?.id) {
+      setError('Debes estar autenticado para subir tickets');
+      return;
+    }
+
     if (!image) {
       setError('Si us plau, escaneja el tiquet primer');
       return;
@@ -71,8 +83,9 @@ const CreateTicket: React.FC = () => {
       
       const formData = new FormData();
       formData.append('file', blob, 'tiquet-compra.jpg');
+      formData.append('user_id', user?.id || '');
 
-      await axios.post('/tickets/upload', formData, {
+      await ticketApi.post('/upload/', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -158,25 +171,25 @@ const CreateTicket: React.FC = () => {
                 <div className="absolute inset-0 border-4 border-primary-500 border-dashed rounded-lg pointer-events-none"></div>
               </div>
               
-              <div className="flex justify-center space-x-4">
+              <div className="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4">
                 <button
                   onClick={() => navigate('/dashboard')}
-                  className="btn-secondary"
+                  className="btn-market bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-xl font-semibold shadow-lg transition-all duration-300 transform hover:scale-105"
                 >
                   Cancel·lar
                 </button>
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="btn-secondary flex items-center space-x-2"
+                  className="btn-market bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2"
                 >
-                  <Upload className="h-4 w-4" />
+                  <Upload className="h-5 w-5" />
                   <span>Pujar Foto (Debug)</span>
                 </button>
                 <button
                   onClick={capture}
-                  className="btn-primary flex items-center space-x-2"
+                  className="btn-market bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2"
                 >
-                  <Camera className="h-4 w-4" />
+                  <Camera className="h-5 w-5" />
                   <span>Capturar Tiquet</span>
                 </button>
               </div>
@@ -211,26 +224,26 @@ const CreateTicket: React.FC = () => {
                 </p>
               </div>
               
-              <div className="flex justify-center space-x-4">
+              <div className="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4">
                 <button
                   onClick={retakePhoto}
-                  className="btn-secondary"
+                  className="btn-market bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-xl font-semibold shadow-lg transition-all duration-300 transform hover:scale-105"
                 >
                   Tornar a Capturar
                 </button>
                 <button
                   onClick={handleSubmit}
                   disabled={loading}
-                  className="btn-primary flex items-center space-x-2"
+                  className="btn-market bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                 >
                   {loading ? (
                     <>
-                      <Loader className="h-4 w-4 animate-spin" />
+                      <Loader className="h-5 w-5 animate-spin" />
                       <span>Enviant...</span>
                     </>
                   ) : (
                     <>
-                      <Receipt className="h-4 w-4" />
+                      <Receipt className="h-5 w-5" />
                       <span>Enviar Tiquet</span>
                     </>
                   )}

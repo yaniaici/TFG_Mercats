@@ -1,7 +1,7 @@
 
 import os
 import logging
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import uvicorn
@@ -12,6 +12,9 @@ import shutil
 
 # Importar el sistema de IA
 from ai_system import GeminiTicketAI
+
+# Importar procesador automático
+from auto_processor import get_auto_processor
 
 # Cargar variables de entorno
 load_dotenv()
@@ -63,6 +66,12 @@ async def startup_event():
     try:
         ai_processor = GeminiTicketAI()
         logger.info("AI processor initialized successfully")
+        
+        # Iniciar procesador automático
+        auto_processor = get_auto_processor()
+        auto_processor.start_processor()
+        logger.info("Auto processor started")
+        
     except Exception as e:
         logger.error("Failed to initialize AI processor", error=str(e))
         raise
@@ -83,6 +92,76 @@ async def health_check():
         "status": "healthy",
         "ai_processor_ready": ai_processor is not None
     }
+
+@app.post("/process-ticket-api")
+async def process_ticket_api(request: Request):
+    """
+    Procesar ticket desde base64 y verificar tiendas del mercado
+    
+    Args:
+        request: JSON con image_base64 y market_stores
+        
+    Returns:
+        JSON con la información procesada del ticket
+    """
+    if ai_processor is None:
+        raise HTTPException(status_code=503, detail="AI processor not initialized")
+    
+    try:
+        # Obtener datos del request
+        data = await request.json()
+        image_base64 = data.get("image_base64")
+        market_stores = data.get("market_stores", [])
+        
+        if not image_base64:
+            raise HTTPException(status_code=400, detail="image_base64 is required")
+        
+        # Decodificar imagen base64
+        import base64
+        import tempfile
+        
+        try:
+            image_data = base64.b64decode(image_base64)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Invalid base64 image: {str(e)}")
+        
+        # Guardar imagen temporalmente
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
+            temp_file.write(image_data)
+            temp_path = temp_file.name
+        
+        try:
+            # Procesar con IA
+            result = ai_processor.process_ticket(temp_path)
+            
+            # Verificar si es tienda del mercado
+            tienda = result.get('tienda', '')
+            es_tienda_mercado = any(store.lower() in tienda.lower() for store in market_stores) if tienda else False
+            
+            # Determinar estado del ticket
+            if result.get('procesado_correctamente', False):
+                if es_tienda_mercado:
+                    result['ticket_status'] = "done_approved"
+                    result['status_message'] = "Ticket aprobado - Tienda del mercado"
+                else:
+                    result['ticket_status'] = "done_rejected"
+                    result['status_message'] = "Ticket rechazado - No es tienda del mercado"
+            else:
+                result['ticket_status'] = "failed"
+                result['status_message'] = "Error en el procesamiento"
+            
+            result['es_tienda_mercado'] = es_tienda_mercado
+            
+            return JSONResponse(content=result)
+            
+        finally:
+            # Limpiar archivo temporal
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
+                
+    except Exception as e:
+        logger.error("Error processing ticket via API", error=str(e))
+        raise HTTPException(status_code=500, detail=f"Error processing ticket: {str(e)}")
 
 @app.post("/process-ticket")
 async def process_ticket(file: UploadFile = File(...)):
@@ -213,6 +292,50 @@ async def get_model_info():
             "Structured JSON output"
         ]
     }
+
+# Endpoints para el procesador automático
+@app.get("/auto-processor/status")
+async def get_auto_processor_status():
+    """Obtener estado del procesador automático"""
+    try:
+        auto_processor = get_auto_processor()
+        return auto_processor.get_status()
+    except Exception as e:
+        logger.error("Error getting auto processor status", error=str(e))
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+@app.post("/auto-processor/start")
+async def start_auto_processor():
+    """Iniciar el procesador automático"""
+    try:
+        auto_processor = get_auto_processor()
+        auto_processor.start_processor()
+        return {"message": "Auto processor started successfully"}
+    except Exception as e:
+        logger.error("Error starting auto processor", error=str(e))
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+@app.post("/auto-processor/stop")
+async def stop_auto_processor():
+    """Detener el procesador automático"""
+    try:
+        auto_processor = get_auto_processor()
+        auto_processor.stop_processor()
+        return {"message": "Auto processor stopped successfully"}
+    except Exception as e:
+        logger.error("Error stopping auto processor", error=str(e))
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+@app.post("/auto-processor/process-now")
+async def process_now():
+    """Procesar tickets pendientes inmediatamente"""
+    try:
+        auto_processor = get_auto_processor()
+        result = auto_processor.process_pending_tickets()
+        return result
+    except Exception as e:
+        logger.error("Error in manual processing", error=str(e))
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8003))

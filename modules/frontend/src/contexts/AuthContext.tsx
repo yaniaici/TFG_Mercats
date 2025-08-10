@@ -1,17 +1,37 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import axios from 'axios';
 
+// Crear instancia específica para auth-service
+const authApi = axios.create({
+  baseURL: 'http://localhost:8001'
+});
+
+// Interceptor para manejar errores de autenticación
+authApi.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token expirado, limpiar localStorage
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
 interface User {
-  id: number;
+  id: string;
   email: string;
-  username: string;
+  username?: string;
+  role?: 'user' | 'vendor' | 'admin';
+  preferences?: Record<string, any>;
 }
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, username: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
+  register: (email: string, password: string, username: string, role?: 'user' | 'vendor' | 'admin') => Promise<void>;
   logout: () => void;
   loading: boolean;
 }
@@ -37,9 +57,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     if (token) {
-      // Configurar axios con el token
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      setLoading(false);
+      // Configurar authApi con el token
+      authApi.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      
+      // Verificar si el token es válido y obtener datos del usuario
+      verifyToken();
     } else {
       setLoading(false);
     }
@@ -47,21 +69,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const verifyToken = async () => {
     try {
-      const response = await axios.get('/users/me');
+      const response = await authApi.get('/users/me');
       setUser(response.data);
-    } catch (error) {
-      console.error('Token inválido:', error);
-      logout();
-    } finally {
       setLoading(false);
+    } catch (error: any) {
+      console.error('Error verificando token:', error);
+      
+      // Si el token expiró (401), hacer logout
+      if (error.response?.status === 401) {
+        console.log('Token expirado, cerrando sesión');
+        logout();
+      } else {
+        // Para otros errores, mantener la sesión pero marcar como no cargado
+        setLoading(false);
+      }
     }
   };
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<User> => {
     try {
-      const response = await axios.post('/auth/login', {
-        email_hash: email, // El backend espera email_hash
-        password
+      const response = await authApi.post('/auth/login', {
+        email: email, // El backend espera email
+        password: password // El backend espera password
       });
       
       const { access_token, user: userData } = response.data;
@@ -69,18 +98,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setToken(access_token);
       setUser(userData);
       localStorage.setItem('token', access_token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+      authApi.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+      return userData as User;
     } catch (error: any) {
       throw new Error(error.response?.data?.detail || 'Error en el login');
     }
   };
 
-  const register = async (email: string, password: string, username: string) => {
+  const register = async (email: string, password: string, username: string, role: 'user' | 'vendor' | 'admin' = 'user') => {
     try {
-      const response = await axios.post('/auth/register', {
-        email_hash: email, // El backend espera email_hash
-        password,
-        preferences: { username } // Usar preferences para el username
+      const response = await authApi.post('/auth/register', {
+        email: email,
+        password: password,
+        preferences: { username },
+        role
       });
       
       const { access_token, user: userData } = response.data;
@@ -88,7 +119,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setToken(access_token);
       setUser(userData);
       localStorage.setItem('token', access_token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+      authApi.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
     } catch (error: any) {
       throw new Error(error.response?.data?.detail || 'Error en el registro');
     }
@@ -98,7 +129,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(null);
     setToken(null);
     localStorage.removeItem('token');
-    delete axios.defaults.headers.common['Authorization'];
+    delete authApi.defaults.headers.common['Authorization'];
   };
 
   const value = {

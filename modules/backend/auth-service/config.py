@@ -15,7 +15,8 @@ class Settings:
         "SECRET_KEY", 
         "tu_clave_secreta_super_segura_cambiar_en_produccion"
     )
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 horas fijo
+    REFRESH_TOKEN_EXPIRE_DAYS: int = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "30"))  # 30 días
     
     # Configuración del servidor
     HOST: str = os.getenv("HOST", "0.0.0.0")

@@ -1,203 +1,160 @@
-# Ticket Service
+# Servicio de Tickets con IA
 
-Servicio para la gestión de tickets de usuarios. Permite a los usuarios autenticados subir imágenes de tickets que posteriormente serán procesadas por el AI Ticket Processor.
+Este servicio gestiona la subida, procesamiento y validación de tickets de compra usando inteligencia artificial.
 
-## Características
+## 🎯 Funcionalidades
 
-- ✅ Subida de imágenes de tickets (JPG, JPEG, PNG)
-- ✅ Autenticación mediante JWT tokens
-- ✅ Validación de archivos (tamaño y extensión)
-- ✅ Gestión de tickets por usuario
-- ✅ Almacenamiento seguro de archivos
-- ✅ API RESTful completa
+### Estados de Tickets
+- **`pending`**: Ticket subido, pendiente de procesamiento
+- **`done_approved`**: Ticket procesado y aprobado (es de tienda del mercado)
+- **`done_rejected`**: Ticket procesado pero rechazado (no es de tienda del mercado)
+- **`failed`**: Error en el procesamiento
 
-## Estructura del Proyecto
+### Tiendas del Mercado
+El sistema mantiene una lista de tiendas del mercado válidas:
+- **Mercadona**
+- **Eroski** 
+- **Carrefour**
 
-```
-ticket-service/
-├── main.py              # Aplicación principal FastAPI
-├── models.py            # Modelos de base de datos
-├── schemas.py           # Esquemas Pydantic
-├── database.py          # Configuración de base de datos
-├── config.py            # Configuración del servicio
-├── auth_client.py       # Cliente de autenticación
-├── utils.py             # Utilidades para manejo de archivos
-├── requirements.txt     # Dependencias de Python
-├── Dockerfile           # Configuración de Docker
-├── env.example          # Variables de entorno de ejemplo
-└── README.md           # Este archivo
-```
+Solo los tickets de estas tiendas serán aprobados y contarán para la feed de los usuarios.
 
-## Instalación
+## 🚀 Instalación y Configuración
 
-### Requisitos
-
-- Python 3.11+
-- PostgreSQL
-- Auth Service ejecutándose
-
-### Instalación Local
-
-1. Clonar el repositorio
-2. Instalar dependencias:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. Configurar variables de entorno:
-   ```bash
-   cp env.example .env
-   # Editar .env con tus configuraciones
-   ```
-
-4. Ejecutar el servicio:
-   ```bash
-   python main.py
-   ```
-
-### Docker
-
+### 1. Variables de Entorno
 ```bash
-docker build -t ticket-service .
-docker run -p 8003:8003 ticket-service
+# Copiar archivo de ejemplo
+cp env.example .env
+
+# Configurar variables
+DATABASE_URL=postgresql://user:password@localhost:5432/tickets_db
+GEMINI_API_KEY=tu_api_key_de_gemini
 ```
 
-## Configuración
-
-### Variables de Entorno
-
-| Variable | Descripción | Valor por Defecto |
-|----------|-------------|-------------------|
-| `DATABASE_URL` | URL de conexión a PostgreSQL | `postgresql://ticket_user:ticket_password@localhost:5432/ticket_analytics` |
-| `HOST` | Host del servidor | `0.0.0.0` |
-| `PORT` | Puerto del servidor | `8003` |
-| `UPLOAD_DIR` | Directorio de almacenamiento | `./uploads` |
-| `MAX_FILE_SIZE` | Tamaño máximo de archivo (bytes) | `10485760` (10MB) |
-| `AUTH_SERVICE_URL` | URL del servicio de autenticación | `http://localhost:8001` |
-| `DEBUG` | Modo debug | `false` |
-
-## API Endpoints
-
-### Autenticación
-
-Todos los endpoints requieren autenticación mediante JWT token en el header:
-```
-Authorization: Bearer <token>
+### 2. Instalar Dependencias
+```bash
+pip install -r requirements.txt
 ```
 
-### Endpoints Disponibles
+### 3. Crear Base de Datos
+```bash
+# Las tablas se crean automáticamente al ejecutar el servicio
+```
 
-#### `POST /tickets/upload`
-Subir un nuevo ticket (imagen)
+### 4. Poblar Tiendas del Mercado
+```bash
+python seed_market_stores.py
+```
 
-**Parámetros:**
-- `file`: Archivo de imagen (JPG, JPEG, PNG)
+## 📡 Endpoints
 
-**Respuesta:**
-```json
+### Tiendas del Mercado
+
+#### Crear Tienda
+```http
+POST /market-stores/
 {
-  "message": "Ticket subido exitosamente",
-  "ticket": {
-    "id": "uuid",
-    "user_id": "uuid",
-    "filename": "unique_filename.jpg",
-    "original_filename": "ticket.jpg",
-    "file_path": "/path/to/file",
-    "file_size": 1024,
-    "mime_type": "image/jpeg",
-    "status": "pending",
-    "metadata": {},
-    "processing_result": {},
-    "created_at": "2024-01-01T00:00:00Z",
-    "updated_at": "2024-01-01T00:00:00Z"
-  }
+    "name": "Nueva Tienda",
+    "description": "Descripción de la tienda"
 }
 ```
 
-#### `GET /tickets`
-Obtener todos los tickets del usuario actual
+#### Listar Tiendas
+```http
+GET /market-stores/
+```
 
-**Parámetros de consulta:**
-- `skip`: Número de registros a omitir (paginación)
-- `limit`: Número máximo de registros a retornar
+#### Verificar Tienda
+```http
+GET /market-stores/verify/{store_name}
+```
 
-#### `GET /tickets/{ticket_id}`
-Obtener un ticket específico
+### Tickets
 
-#### `PUT /tickets/{ticket_id}`
-Actualizar un ticket específico
+#### Subir Ticket
+```http
+POST /tickets/upload/
+Content-Type: multipart/form-data
 
-**Body:**
+file: [archivo_imagen]
+user_id: "uuid_del_usuario"
+```
+
+#### Listar Tickets
+```http
+GET /tickets/?user_id={user_id}&status={status}
+```
+
+#### Procesar Ticket Individual
+```http
+POST /tickets/{ticket_id}/process/
+```
+
+#### Procesar Todos los Pendientes
+```http
+POST /tickets/process-pending/
+```
+
+## 🤖 Procesamiento con IA
+
+### Flujo de Procesamiento
+1. **Subida**: El usuario sube una imagen de ticket
+2. **Análisis IA**: Gemini AI extrae información del ticket
+3. **Verificación**: Se verifica si la tienda está en la lista de tiendas del mercado
+4. **Clasificación**:
+   - ✅ **Aprobado**: Si es tienda del mercado → `done_approved`
+   - ❌ **Rechazado**: Si no es tienda del mercado → `done_rejected`
+   - 💥 **Fallido**: Si hay error en el procesamiento → `failed`
+
+### Información Extraída
+- Fecha y hora del ticket
+- Nombre de la tienda
+- Total del ticket
+- Lista de productos
+- Tipo de ticket (supermercado, restaurante, etc.)
+
+## 🛠️ Scripts Útiles
+
+### Poblar Tiendas del Mercado
+```bash
+python seed_market_stores.py
+```
+
+### Procesar Tickets Pendientes
+```bash
+python ../ai-ticket-processor/process_pending_tickets.py
+```
+
+## 📊 Ejemplo de Respuesta de Procesamiento
+
 ```json
 {
-  "status": "processed",
-  "metadata": {"store": "Walmart"},
-  "processing_result": {"total": 25.50}
+    "fecha": "15/12/2024",
+    "hora": "14:30",
+    "tienda": "Mercadona",
+    "total": 45.67,
+    "tipo_ticket": "supermercado",
+    "productos": [
+        {
+            "cantidad": "2",
+            "nombre": "Leche",
+            "precio": "1.20"
+        }
+    ],
+    "num_productos": 1,
+    "procesado_correctamente": true,
+    "es_tienda_mercado": true,
+    "ticket_status": "done_approved",
+    "status_message": "Ticket aprobado - Tienda del mercado"
 }
 ```
 
-#### `DELETE /tickets/{ticket_id}`
-Eliminar un ticket específico
+## 🔧 Configuración de IA
 
-## Modelo de Datos
+El servicio usa **Google Gemini 2.0 Flash** para el procesamiento de imágenes. Asegúrate de tener configurada la variable `GEMINI_API_KEY`.
 
-### Ticket
+## 📝 Notas Importantes
 
-| Campo | Tipo | Descripción |
-|-------|------|-------------|
-| `id` | UUID | Identificador único |
-| `user_id` | UUID | ID del usuario propietario |
-| `filename` | String | Nombre único del archivo |
-| `original_filename` | String | Nombre original del archivo |
-| `file_path` | String | Ruta del archivo en el sistema |
-| `file_size` | Integer | Tamaño del archivo en bytes |
-| `mime_type` | String | Tipo MIME del archivo |
-| `status` | String | Estado del ticket (pending, processed, failed) |
-| `metadata` | JSONB | Metadatos adicionales |
-| `processing_result` | JSONB | Resultado del procesamiento AI |
-| `created_at` | DateTime | Fecha de creación |
-| `updated_at` | DateTime | Fecha de última actualización |
-
-## Seguridad
-
-- **Autenticación**: JWT tokens verificados con el auth-service
-- **Autorización**: Usuarios solo pueden acceder a sus propios tickets
-- **Validación de archivos**: Verificación de extensión y tamaño
-- **Almacenamiento seguro**: Archivos guardados con nombres únicos
-- **CORS**: Configurado para permitir acceso desde frontend
-
-## Integración con AI Ticket Processor
-
-Los tickets subidos tienen estado inicial "pending" y pueden ser actualizados por el AI Ticket Processor con:
-- Estado: "processed" o "failed"
-- Resultado del procesamiento en `processing_result`
-
-## Desarrollo
-
-### Ejecutar en modo desarrollo
-
-```bash
-export DEBUG=true
-python main.py
-```
-
-### Ejecutar tests
-
-```bash
-# TODO: Implementar tests
-```
-
-## Troubleshooting
-
-### Error de conexión a base de datos
-- Verificar que PostgreSQL esté ejecutándose
-- Verificar la URL de conexión en `DATABASE_URL`
-
-### Error de autenticación
-- Verificar que el auth-service esté ejecutándose
-- Verificar la URL en `AUTH_SERVICE_URL`
-
-### Error al subir archivos
-- Verificar permisos en el directorio `UPLOAD_DIR`
-- Verificar que el archivo no exceda `MAX_FILE_SIZE`
-- Verificar que la extensión esté en `ALLOWED_EXTENSIONS` 
+- Solo los tickets con estado `done_approved` contarán para la feed de los usuarios
+- Los tickets rechazados (`done_rejected`) no afectan las estadísticas del usuario
+- El sistema es flexible y permite agregar más tiendas del mercado según sea necesario
+- Todos los tickets se procesan de forma asíncrona para mejor rendimiento 

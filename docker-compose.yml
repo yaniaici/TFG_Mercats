@@ -12,7 +12,7 @@ services:
     container_name: tfg_ai_ticket_processor
     restart: unless-stopped
     environment:
-      - GEMINI_API_KEY=
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
       - PORT=${AI_TICKET_PROCESSOR_PORT:-8004}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - DEBUG=${DEBUG:-false}
@@ -37,12 +37,13 @@ services:
     container_name: tfg_ticket_service
     restart: unless-stopped
     environment:
-      - DATABASE_URL=postgresql://ticket_user:ticket_password@postgres:5432/ticket_analytics
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       - HOST=0.0.0.0
       - PORT=8003
       - UPLOAD_DIR=/app/uploads
       - MAX_FILE_SIZE=10485760
       - AUTH_SERVICE_URL=http://auth-service:8001
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
       - DEBUG=${DEBUG:-false}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
     volumes:
@@ -70,10 +71,10 @@ services:
     container_name: tfg_backend
     restart: unless-stopped
     environment:
-      - DATABASE_URL=postgresql://ticket_user:ticket_password@postgres:5432/ticket_analytics
-      - SECRET_KEY=${SECRET_KEY:-tu_clave_secreta_super_segura_cambiar_en_produccion}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - SECRET_KEY=${SECRET_KEY}
       - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
-      - GEMINI_API_KEY=AIzaSyA2lqWhE9qSOb3oYBR5VykGZj0GNQTiz3A
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
       - AUTH_SERVICE_URL=http://auth-service:8001
     ports:
       - "${BACKEND_PORT:-8000}:8000"
@@ -98,8 +99,8 @@ services:
     container_name: tfg_auth_service
     restart: unless-stopped
     environment:
-      - DATABASE_URL=postgresql://ticket_user:ticket_password@postgres:5432/ticket_analytics
-      - SECRET_KEY=${SECRET_KEY:-tu_clave_secreta_super_segura_cambiar_en_produccion}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - SECRET_KEY=${SECRET_KEY}
       - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
     ports:
       - "${AUTH_SERVICE_PORT:-8001}:8001"
@@ -110,6 +111,63 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  gamification-service:
+    build:
+      context: ./modules/backend/gamification-service
+      dockerfile: Dockerfile
+    container_name: tfg_gamification_service
+    restart: unless-stopped
+    environment:
+      - GAMIFICATION_DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - HOST=0.0.0.0
+      - PORT=8005
+      - DEBUG=${DEBUG:-false}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    ports:
+      - "${GAMIFICATION_SERVICE_PORT:-8005}:8005"
+    networks:
+      - tfg_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8005/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  crm-service:
+    build:
+      context: ./modules/backend/crm-service
+      dockerfile: Dockerfile
+    container_name: tfg_crm_service
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - HOST=0.0.0.0
+      - PORT=8006
+      - DEBUG=${DEBUG:-false}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - AUTH_SERVICE_URL=http://auth-service:8001
+      - OLLAMA_HOST=http://ollama:11434
+      - LLM_MODEL=qwen2.5:0.5b-instruct
+    ports:
+      - "${CRM_SERVICE_PORT:-8006}:8006"
+    networks:
+      - tfg_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8006/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -151,9 +209,9 @@ services:
     container_name: tfg_postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ticket_analytics
-      POSTGRES_USER: ticket_user
-      POSTGRES_PASSWORD: ticket_password
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
     ports:
       - "5432:5432"
@@ -174,8 +232,8 @@ services:
     container_name: tfg_pgadmin
     restart: unless-stopped
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@ticketanalytics.com
-      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
       PGADMIN_CONFIG_SERVER_MODE: 'False'
     ports:
       - "8080:80"
@@ -185,6 +243,20 @@ services:
       - tfg_network
     depends_on:
       - postgres
+
+  # ========================================
+  # IA (Ollama)
+  # ========================================
+  ollama:
+    image: ollama/ollama:latest
+    container_name: tfg_ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - tfg_network
 
 # ========================================
 # REDES
@@ -203,3 +275,5 @@ volumes:
     driver: local
   ticket_uploads:
     driver: local 
+  ollama_data:
+    driver: local
