@@ -18,13 +18,13 @@ import TicketDetails from './TicketDetails';
 
 interface Ticket {
   id: string;
-  display_name: string;
-  store_name: string;
-  total_amount: number;
-  products: any[];
-  status: string;
-  created_at: string;
-  is_digital: boolean;
+  display_name?: string;
+  store_name?: string;
+  total_amount?: number;
+  products?: any[];
+  status?: string;
+  created_at?: string;
+  is_digital?: boolean;
   processing_result?: any;
 }
 
@@ -47,6 +47,8 @@ const TicketHistory: React.FC = () => {
   const fetchTicketHistory = async () => {
     try {
       setLoading(true);
+      setError(null);
+      
       const url = statusFilter === 'all' 
         ? `http://localhost:8003/tickets/history/${user?.id}`
         : `http://localhost:8003/tickets/history/${user?.id}?status=${statusFilter}`;
@@ -58,9 +60,27 @@ const TicketHistory: React.FC = () => {
       }
       
       const data = await response.json();
-      setTickets(data);
+      
+      // Validar y limpiar los datos recibidos
+      const validatedTickets = Array.isArray(data) ? data.filter(ticket => {
+        return ticket && ticket.id && typeof ticket.id === 'string';
+      }).map(ticket => ({
+        id: ticket.id || '',
+        display_name: ticket.display_name || 'Ticket sense nom',
+        store_name: ticket.store_name || 'Botiga desconeguda',
+        total_amount: typeof ticket.total_amount === 'number' ? ticket.total_amount : 0,
+        products: Array.isArray(ticket.products) ? ticket.products : [],
+        status: ticket.status || 'unknown',
+        created_at: ticket.created_at || new Date().toISOString(),
+        is_digital: Boolean(ticket.is_digital),
+        processing_result: ticket.processing_result || null
+      })) : [];
+      
+      setTickets(validatedTickets);
     } catch (err) {
+      console.error('Error fetching ticket history:', err);
       setError(err instanceof Error ? err.message : 'Error desconegut');
+      setTickets([]);
     } finally {
       setLoading(false);
     }
@@ -92,7 +112,7 @@ const TicketHistory: React.FC = () => {
       case 'failed':
         return 'Error';
       default:
-        return status;
+        return 'Desconegut';
     }
   };
 
@@ -112,19 +132,29 @@ const TicketHistory: React.FC = () => {
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('ca-ES', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    try {
+      if (!dateString) return 'Data desconeguda';
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Data invàlida';
+      
+      return date.toLocaleDateString('ca-ES', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Data invàlida';
+    }
   };
 
   const handleViewDetails = (ticket: Ticket) => {
-    setSelectedTicket(ticket);
-    setShowDetails(true);
+    if (ticket && ticket.id) {
+      setSelectedTicket(ticket);
+      setShowDetails(true);
+    }
   };
 
   const getStatusCounts = () => {
@@ -257,22 +287,24 @@ const TicketHistory: React.FC = () => {
           {tickets.map((ticket) => (
             <div 
               key={ticket.id} 
-              className="group hover:shadow-lg transition-all duration-300 bg-gradient-to-r from-white to-gray-50/50 rounded-2xl p-4 sm:p-6 border border-gray-100 cursor-pointer"
-              onClick={() => handleViewDetails(ticket)}
+              className={`group hover:shadow-lg transition-all duration-300 bg-gradient-to-r from-white to-gray-50/50 rounded-2xl p-4 sm:p-6 border border-gray-100 ${
+                ticket.is_digital ? 'cursor-pointer' : ''
+              }`}
+              onClick={ticket.is_digital ? () => handleViewDetails(ticket) : undefined}
             >
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
                 <div className="flex items-center space-x-3 sm:space-x-4">
                   <div className="h-12 w-12 sm:h-14 sm:w-14 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    {getStatusIcon(ticket.status)}
+                    {getStatusIcon(ticket.status || 'unknown')}
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="text-base sm:text-lg font-bold text-gray-900 mb-1 truncate">
-                      {ticket.display_name}
+                      {ticket.display_name || 'Ticket sense nom'}
                     </h4>
                     <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-4 text-xs sm:text-sm text-gray-600">
                       <div className="flex items-center space-x-1">
                         <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-market-500" />
-                        <span>{formatDate(ticket.created_at)}</span>
+                        <span>{formatDate(ticket.created_at || '')}</span>
                       </div>
                       {ticket.is_digital && (
                         <div className="flex items-center space-x-1">
@@ -282,20 +314,20 @@ const TicketHistory: React.FC = () => {
                       )}
                       <div className="flex items-center space-x-1">
                         <Store className="h-3 w-3 sm:h-4 sm:w-4 text-market-500" />
-                        <span>{ticket.store_name}</span>
+                        <span>{ticket.store_name || 'Botiga desconeguda'}</span>
                       </div>
                     </div>
                   </div>
                 </div>
                 <div className="text-center sm:text-right">
-                  {ticket.total_amount && (
+                  {ticket.total_amount && ticket.total_amount > 0 && (
                     <div className="flex items-center justify-center sm:justify-end space-x-1 mb-2">
                       <Euro className="h-3 w-3 sm:h-4 sm:w-4 text-olive-600" />
                       <p className="text-lg sm:text-xl font-bold text-gray-900">€{ticket.total_amount.toFixed(2)}</p>
                     </div>
                   )}
-                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs sm:text-sm font-medium border ${getStatusBadge(ticket.status)}`}>
-                    {getStatusText(ticket.status)}
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs sm:text-sm font-medium border ${getStatusBadge(ticket.status || 'unknown')}`}>
+                    {getStatusText(ticket.status || 'unknown')}
                   </span>
                 </div>
               </div>

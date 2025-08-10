@@ -19,13 +19,13 @@ interface Product {
 interface TicketDetailsProps {
   ticket: {
     id: string;
-    display_name: string;
-    store_name: string;
-    total_amount: number;
-    products: Product[];
-    status: string;
-    created_at: string;
-    is_digital: boolean;
+    display_name?: string;
+    store_name?: string;
+    total_amount?: number;
+    products?: Product[];
+    status?: string;
+    created_at?: string;
+    is_digital?: boolean;
     processing_result?: any;
     ticket_metadata?: any;
   };
@@ -66,7 +66,7 @@ const TicketDetails: React.FC<TicketDetailsProps> = ({ ticket, isOpen, onClose }
       case 'pending':
         return 'Pendent';
       default:
-        return status;
+        return 'Desconegut';
     }
   };
 
@@ -110,11 +110,11 @@ const TicketDetails: React.FC<TicketDetailsProps> = ({ ticket, isOpen, onClose }
           {/* Status */}
           <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
             <div className="flex items-center space-x-2">
-              {getStatusIcon(ticket.status)}
+              {getStatusIcon(ticket.status || '')}
               <span className="font-medium text-gray-900">Estat:</span>
             </div>
-            <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(ticket.status)}`}>
-              {getStatusText(ticket.status)}
+            <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(ticket.status || '')}`}>
+              {getStatusText(ticket.status || '')}
             </span>
           </div>
 
@@ -124,7 +124,7 @@ const TicketDetails: React.FC<TicketDetailsProps> = ({ ticket, isOpen, onClose }
               <Store className="h-5 w-5 text-blue-600" />
               <div>
                 <p className="text-sm text-blue-600">Botiga</p>
-                <p className="font-medium text-gray-900">{ticket.store_name}</p>
+                <p className="font-medium text-gray-900">{ticket.store_name || 'Desconeguda'}</p>
               </div>
             </div>
             
@@ -132,7 +132,7 @@ const TicketDetails: React.FC<TicketDetailsProps> = ({ ticket, isOpen, onClose }
               <Calendar className="h-5 w-5 text-green-600" />
               <div>
                 <p className="text-sm text-green-600">Data</p>
-                <p className="font-medium text-gray-900">{formatDate(ticket.created_at)}</p>
+                <p className="font-medium text-gray-900">{ticket.created_at ? formatDate(ticket.created_at) : 'Desconeguda'}</p>
               </div>
             </div>
           </div>
@@ -144,7 +144,7 @@ const TicketDetails: React.FC<TicketDetailsProps> = ({ ticket, isOpen, onClose }
               <span className="text-lg font-medium text-gray-900">Total:</span>
             </div>
             <span className="text-2xl font-bold text-market-600">
-              €{ticket.total_amount.toFixed(2)}
+              €{ticket.total_amount?.toFixed(2) || '0.00'}
             </span>
           </div>
 

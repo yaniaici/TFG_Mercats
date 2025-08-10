@@ -204,11 +204,13 @@ class GamificationEngine:
                 experience_gained += bonus
                 reason += f" + {bonus} XP bonus per compra alta"
         else:
-            experience_gained = 10  # 10 XP por ticket inválido (participación)
-            reason = "Ticket invàlid escanejat (participació)"
+            # No se dan puntos por tickets inválidos
+            experience_gained = 0
+            reason = "Ticket invàlid escanejat (sense punts)"
         
-        # Añadir experiencia
-        profile = self.add_experience(event.user_id, experience_gained, reason, event.ticket_id)
+        # Añadir experiencia solo si hay puntos que añadir
+        if experience_gained > 0:
+            profile = self.add_experience(event.user_id, experience_gained, reason, event.ticket_id)
         
         # Verificar insignias
         new_badges = self.check_and_award_badges(profile)
