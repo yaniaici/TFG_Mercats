@@ -70,7 +70,7 @@ const ValidateReward: React.FC = () => {
         await navigator.clipboard.writeText(redemptionCode);
         // Mostrar feedback
       } catch (err) {
-        console.error('Error copiando código:', err);
+        console.error('Error copiant codi:', err);
       }
     }
   };

@@ -38,7 +38,7 @@ const ProfileQR: React.FC<ProfileQRProps> = ({ isOpen, onClose }) => {
         }
       }, (error) => {
         if (error) {
-          console.error('Error generando QR del perfil:', error);
+          console.error('Error generant QR del perfil:', error);
         }
       });
     }
@@ -52,7 +52,7 @@ const ProfileQR: React.FC<ProfileQRProps> = ({ isOpen, onClose }) => {
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       } catch (err) {
-        console.error('Error copiando URL del perfil:', err);
+        console.error('Error copiant URL del perfil:', err);
       }
     }
   };
@@ -60,7 +60,7 @@ const ProfileQR: React.FC<ProfileQRProps> = ({ isOpen, onClose }) => {
   const handleDownloadQR = () => {
     if (canvasRef.current) {
       const link = document.createElement('a');
-      link.download = `qr-perfil-${user?.email?.split('@')[0] || 'usuario'}.png`;
+      link.download = `qr-perfil-${user?.email?.split('@')[0] || 'usuari'}.png`;
       link.href = canvasRef.current.toDataURL();
       link.click();
     }

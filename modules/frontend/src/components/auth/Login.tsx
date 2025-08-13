@@ -55,7 +55,7 @@ const Login: React.FC = () => {
             Benvingut al
           </h2>
           <h1 className="text-center text-3xl sm:text-5xl font-bold bg-gradient-to-r from-market-600 to-olive-600 bg-clip-text text-transparent font-display">
-            Mercat Meditarrani
+            Mercat Mediterrani
           </h1>
           <p className="mt-3 sm:mt-4 text-center text-base sm:text-lg text-gray-600 font-medium px-2">
             Descobreix els productes frescos del nostre mercat

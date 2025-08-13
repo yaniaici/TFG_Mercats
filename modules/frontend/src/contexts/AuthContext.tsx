@@ -41,7 +41,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth debe ser usado dentro de un AuthProvider');
+    throw new Error('useAuth ha de ser usat dins d\'un AuthProvider');
   }
   return context;
 };
@@ -73,11 +73,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(response.data);
       setLoading(false);
     } catch (error: any) {
-      console.error('Error verificando token:', error);
+      console.error('Error verificant token:', error);
       
       // Si el token expiró (401), hacer logout
       if (error.response?.status === 401) {
-        console.log('Token expirado, cerrando sesión');
+        console.log('Token expirat, tancant sessió');
         logout();
       } else {
         // Para otros errores, mantener la sesión pero marcar como no cargado
@@ -121,7 +121,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.setItem('token', access_token);
       authApi.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Error en el registro');
+      throw new Error(error.response?.data?.detail || 'Error en el registre');
     }
   };
 

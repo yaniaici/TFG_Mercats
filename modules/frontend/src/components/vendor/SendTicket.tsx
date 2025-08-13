@@ -62,7 +62,7 @@ const SendTicket: React.FC = () => {
   useEffect(() => {
     const fetchUserInfo = async () => {
       if (!userId) {
-        setError('ID de usuario no válido');
+        setError('ID d\'usuari no vàlid');
         setLoading(false);
         return;
       }
@@ -76,8 +76,8 @@ const SendTicket: React.FC = () => {
         setUserInfo(response.data);
         
       } catch (err: any) {
-        console.error('Error obteniendo información del usuario:', err);
-        setError(err.response?.data?.detail || 'Error obtingent informació del client');
+        console.error('Error obtenint informació de l\'usuari:', err);
+        setError(err.response?.data?.detail || 'Error obtenint informació del client');
       } finally {
         setLoading(false);
       }
@@ -137,7 +137,7 @@ const SendTicket: React.FC = () => {
 
       const response = await axios.post('http://localhost:8003/tickets/digital/', ticketPayload);
       
-      console.log('Ticket digital enviado:', response.data);
+      console.log('Tiquet digital enviat:', response.data);
 
       setSuccess(true);
       
@@ -153,8 +153,8 @@ const SendTicket: React.FC = () => {
       }, 3000);
 
     } catch (err: any) {
-      console.error('Error enviando ticket digital:', err);
-      setError(err.response?.data?.detail || 'Error enviant el ticket digital');
+      console.error('Error enviant tiquet digital:', err);
+      setError(err.response?.data?.detail || 'Error enviant el tiquet digital');
     } finally {
       setSending(false);
     }
@@ -202,8 +202,8 @@ const SendTicket: React.FC = () => {
               <ArrowLeft className="h-6 w-6" />
             </button>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Enviar Ticket Digital</h1>
-              <p className="text-gray-600">Crea i envia un ticket digital al client</p>
+              <h1 className="text-2xl font-bold text-gray-900">Enviar Tiquet Digital</h1>
+              <p className="text-gray-600">Crea i envia un tiquet digital al client</p>
             </div>
           </div>
         </div>
@@ -221,7 +221,7 @@ const SendTicket: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-900">Client</h3>
-                  <p className="text-sm text-gray-600">Destinatari del ticket</p>
+                  <p className="text-sm text-gray-600">Destinatari del tiquet</p>
                 </div>
               </div>
               
@@ -249,7 +249,7 @@ const SendTicket: React.FC = () => {
                   <Info className="h-4 w-4 text-blue-600 mt-0.5" />
                   <div>
                     <p className="text-xs text-blue-800">
-                      <strong>Mode Debug:</strong> Aquest ticket s'afegirà automàticament al historial del client.
+                      <strong>Mode Debug:</strong> Aquest tiquet s'afegirà automàticament al historial del client.
                     </p>
                   </div>
                 </div>
@@ -265,7 +265,7 @@ const SendTicket: React.FC = () => {
                   <Receipt className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Detalls del Ticket</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">Detalls del Tiquet</h3>
                   <p className="text-sm text-gray-600">Omple la informació de la compra</p>
                 </div>
               </div>
@@ -281,7 +281,7 @@ const SendTicket: React.FC = () => {
               {success && (
                 <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center space-x-2">
                   <CheckCircle className="h-5 w-5 text-green-400" />
-                  <span className="text-green-800 text-sm">Ticket enviat correctament!</span>
+                  <span className="text-green-800 text-sm">Tiquet enviat correctament!</span>
                 </div>
               )}
 
@@ -406,7 +406,7 @@ const SendTicket: React.FC = () => {
                 ) : (
                   <>
                     <Send className="h-5 w-5" />
-                    <span>Enviar Ticket Digital</span>
+                    <span>Enviar Tiquet Digital</span>
                   </>
                 )}
               </button>

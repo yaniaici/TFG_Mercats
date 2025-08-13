@@ -100,8 +100,8 @@ class GamificationService {
     try {
       return await this.request<GamificationStats>(`/users/${userId}/stats`);
     } catch (error) {
-      console.error('Error obteniendo estadísticas de gamificación:', error);
-      throw new Error('No se pudieron obtener las estadísticas de gamificación');
+      console.error('Error obtenint estadístiques de gamificació:', error);
+      throw new Error('No es van poder obtenir les estadístiques de gamificació');
     }
   }
 
@@ -112,8 +112,8 @@ class GamificationService {
     try {
       return await this.request<UserBadge[]>(`/users/${userId}/badges`);
     } catch (error) {
-      console.error('Error obteniendo insignias:', error);
-      throw new Error('No se pudieron obtener las insignias');
+      console.error('Error obtenint insígnies:', error);
+      throw new Error('No es van poder obtenir les insígnies');
     }
   }
 
@@ -124,8 +124,8 @@ class GamificationService {
     try {
       return await this.request<ExperienceLog[]>(`/users/${userId}/experience-log?limit=${limit}`);
     } catch (error) {
-      console.error('Error obteniendo historial de experiencia:', error);
-      throw new Error('No se pudo obtener el historial de experiencia');
+      console.error('Error obtenint historial d\'experiència:', error);
+      throw new Error('No es va poder obtenir l\'historial d\'experiència');
     }
   }
 
@@ -137,7 +137,7 @@ class GamificationService {
       await this.request<any>('/health');
       return true;
     } catch (error) {
-      console.error('Servicio de gamificación no disponible:', error);
+      console.error('Servei de gamificació no disponible:', error);
       return false;
     }
   }
@@ -151,8 +151,8 @@ class GamificationService {
     try {
       return await this.request<Reward[]>('/rewards');
     } catch (error) {
-      console.error('Error obteniendo recompensas:', error);
-      throw new Error('No se pudieron obtener las recompensas');
+      console.error('Error obtenint recompenses:', error);
+      throw new Error('No es van poder obtenir les recompenses');
     }
   }
 
@@ -163,8 +163,8 @@ class GamificationService {
     try {
       return await this.request<Reward>(`/rewards/${rewardId}`);
     } catch (error) {
-      console.error('Error obteniendo recompensa:', error);
-      throw new Error('No se pudo obtener la recompensa');
+      console.error('Error obtenint recompensa:', error);
+      throw new Error('No es va poder obtenir la recompensa');
     }
   }
 
@@ -175,8 +175,8 @@ class GamificationService {
     try {
       return await this.request<RedeemRewardResponse>(`/users/${userId}/redeem-reward/${rewardId}`, { method: 'POST' });
     } catch (error: any) {
-      console.error('Error canjeando recompensa:', error);
-      const errorMessage = error.response?.data?.detail || 'Error canjeando recompensa';
+      console.error('Error canviant recompensa:', error);
+      const errorMessage = error.response?.data?.detail || 'Error canviant recompensa';
       throw new Error(errorMessage);
     }
   }
@@ -188,8 +188,8 @@ class GamificationService {
     try {
       return await this.request<RewardRedemption[]>(`/users/${userId}/redemptions`);
     } catch (error) {
-      console.error('Error obteniendo historial de canjes:', error);
-      throw new Error('No se pudo obtener el historial de canjes');
+      console.error('Error obtenint historial de canjes:', error);
+      throw new Error('No es va poder obtenir l\'historial de canjes');
     }
   }
 
@@ -200,8 +200,8 @@ class GamificationService {
     try {
       return await this.request<{ message: string; used_at: string }>(`/redemptions/${redemptionCode}/use`, { method: 'POST' });
     } catch (error: any) {
-      console.error('Error utilizando recompensa:', error);
-      const errorMessage = error.response?.data?.detail || 'Error utilizando recompensa';
+      console.error('Error utilitzant recompensa:', error);
+      const errorMessage = error.response?.data?.detail || 'Error utilitzant recompensa';
       throw new Error(errorMessage);
     }
   }
@@ -228,7 +228,7 @@ class GamificationService {
         expiresAt: d.expires_at,
       };
     } catch (error: any) {
-      const message = error.response?.data?.detail || 'Error validando recompensa';
+      const message = error.response?.data?.detail || 'Error validant recompensa';
       throw new Error(message);
     }
   }

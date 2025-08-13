@@ -34,7 +34,7 @@ const VendorLogin: React.FC = () => {
         <p className="text-gray-600 mb-6">Inicia sessió amb un compte de venedor</p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Correu electrònic</label>
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-3 py-2 border rounded-lg" required />
           </div>
           <div>

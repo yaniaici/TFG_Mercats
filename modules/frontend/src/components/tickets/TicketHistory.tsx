@@ -56,7 +56,7 @@ const TicketHistory: React.FC = () => {
       const response = await fetch(url);
       
       if (!response.ok) {
-        throw new Error('Error al obtenir l\'historial de tiquets');
+        throw new Error('Error en obtenir l\'historial de tiquets');
       }
       
       const data = await response.json();
@@ -66,7 +66,7 @@ const TicketHistory: React.FC = () => {
         return ticket && ticket.id && typeof ticket.id === 'string';
       }).map(ticket => ({
         id: ticket.id || '',
-        display_name: ticket.display_name || 'Ticket sense nom',
+        display_name: ticket.display_name || 'Tiquet sense nom',
         store_name: ticket.store_name || 'Botiga desconeguda',
         total_amount: typeof ticket.total_amount === 'number' ? ticket.total_amount : 0,
         products: Array.isArray(ticket.products) ? ticket.products : [],
@@ -78,7 +78,7 @@ const TicketHistory: React.FC = () => {
       
       setTickets(validatedTickets);
     } catch (err) {
-      console.error('Error fetching ticket history:', err);
+      console.error('Error obtenint historial de tiquets:', err);
       setError(err instanceof Error ? err.message : 'Error desconegut');
       setTickets([]);
     } finally {
@@ -145,7 +145,7 @@ const TicketHistory: React.FC = () => {
         minute: '2-digit'
       });
     } catch (error) {
-      console.error('Error formatting date:', error);
+      console.error('Error formatant data:', error);
       return 'Data invàlida';
     }
   };
@@ -186,7 +186,7 @@ const TicketHistory: React.FC = () => {
       <div className="card">
         <div className="text-center py-12">
           <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-6" />
-          <h4 className="text-xl font-bold text-gray-900 mb-3">Error al carregar l'historial</h4>
+          <h4 className="text-xl font-bold text-gray-900 mb-3">Error en carregar l'historial</h4>
           <p className="text-gray-600 mb-6 text-lg">{error}</p>
           <button
             onClick={fetchTicketHistory}
@@ -299,7 +299,7 @@ const TicketHistory: React.FC = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="text-base sm:text-lg font-bold text-gray-900 mb-1 truncate">
-                      {ticket.display_name || 'Ticket sense nom'}
+                      {ticket.display_name || 'Tiquet sense nom'}
                     </h4>
                     <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-4 text-xs sm:text-sm text-gray-600">
                       <div className="flex items-center space-x-1">

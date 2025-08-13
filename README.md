@@ -1,139 +1,338 @@
-# 🏪 Mercat Mediterrani - Sistema de Tickets y Gamificación
+# 🏪 Mercat Mediterrani - Sistema de Gestión de Tickets Digitales
 
-Sistema completo de gestión de tickets para mercados locales con gamificación, CRM y IA integrada.
+Sistema completo de gestión de tickets digitales para mercados, con gamificación, IA y CRM integrado. Desarrollado como Trabajo de Fin de Grado (TFG).
 
-## 🚀 Inicio Rápido
+## 🚀 Características Principales
 
-### 1. Configurar Variables de Entorno
+### 📱 **Frontend (React + TypeScript)**
+- **Interfaz completamente en catalán** 🇨🇦
+- Diseño responsive y moderno
+- Sistema de autenticación JWT
+- Escáner de tickets con cámara
+- Panel de usuario con gamificación
+- Panel de vendedor con QR scanner
+- Panel de administrador
+- Sistema de recompensas y puntos
 
-```powershell
-# Ejecutar el script de configuración
-.\setup-env.ps1
-```
-
-Esto creará un archivo `.env` con todas las variables necesarias. **IMPORTANTE**: Revisa y modifica las credenciales sensibles antes de usar en producción.
-
-### 2. Levantar el Sistema
-
-```powershell
-# Iniciar todos los servicios
-docker compose up -d
-
-# O usar el script de inicio
-.\start_system.ps1
-```
-
-### 3. Acceder a los Servicios
-
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:8000
-- **pgAdmin**: http://localhost:8080 (admin@ticketanalytics.com / admin123)
-
-## 🏗️ Arquitectura
-
-### Servicios Backend
-- **auth-service** (8001): Autenticación y autorización
-- **ticket-service** (8003): Gestión de tickets y compras
-- **ai-ticket-processor** (8004): Procesamiento de tickets con IA
-- **gamification-service** (8005): Sistema de gamificación y recompensas
-- **crm-service** (8006): CRM con segmentación y campañas por IA
-- **main-backend** (8000): API principal y orquestación
-
-### Base de Datos
-- **PostgreSQL**: Base de datos principal
-- **Redis**: Cache y sesiones
-
-### IA
-- **Ollama**: Modelos de IA locales (Qwen2.5 0.5B)
-
-## 🔧 Configuración
-
-### Variables de Entorno Importantes
-
-```bash
-# API Keys
-GEMINI_API_KEY=tu_api_key_de_google_gemini
-
-# Secrets
-SECRET_KEY=clave_secreta_para_jwt
-POSTGRES_PASSWORD=contraseña_postgres
-PGADMIN_DEFAULT_PASSWORD=contraseña_pgadmin
-
-# Puertos (opcionales)
-FRONTEND_PORT=3000
-BACKEND_PORT=8000
-```
-
-### Cambiar Credenciales en Producción
-
-1. Edita el archivo `.env`
-2. Cambia todas las contraseñas por defecto
-3. Usa una API key válida de Google Gemini
-4. Genera una SECRET_KEY segura
-
-## 📱 Funcionalidades
-
-### Usuarios
-- Registro e inicio de sesión
-- Crear y gestionar tickets
-- Historial de compras
-- Sistema de recompensas y gamificación
-
-### Vendedores
-- Dashboard de ventas
-- Escáner QR para validar tickets
+### 🔧 **Backend (FastAPI + Python)**
+- **6 microservicios** especializados
+- Autenticación y autorización
+- Procesamiento de IA con Gemini
+- Sistema de gamificación
 - CRM para gestión de clientes
+- Gestión de tickets digitales
+- Base de datos PostgreSQL
+
+### 🤖 **Inteligencia Artificial**
+- Procesamiento automático de tickets
+- Análisis de compras con Gemini AI
+- Segmentación automática de clientes
+- Recomendaciones personalizadas
+
+### 🎮 **Gamificación**
+- Sistema de puntos por compras
+- Recompensas canjeables
+- Badges y logros
+- Historial de actividad
+
+## 🏗️ Arquitectura del Sistema
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Frontend      │    │   Auth Service  │    │  Ticket Service │
+│   (React)       │◄──►│   (Port 8001)   │◄──►│   (Port 8003)   │
+│   (Port 3000)   │    │                 │    │                 │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         │              ┌─────────────────┐              │
+         │              │  Main Backend   │              │
+         │              │   (Port 8000)   │              │
+         │              └─────────────────┘              │
+         │                       │                       │
+         │              ┌─────────────────┐              │
+         │              │ Gamification    │              │
+         │              │   (Port 8005)   │              │
+         │              └─────────────────┘              │
+         │                       │                       │
+         │              ┌─────────────────┐              │
+         │              │   CRM Service   │              │
+         │              │   (Port 8006)   │              │
+         │              └─────────────────┘              │
+         │                       │                       │
+         │              ┌─────────────────┐              │
+         │              │ AI Processor    │              │
+         │              │   (Port 8004)   │              │
+         │              └─────────────────┘              │
+         │                       │                       │
+         │              ┌─────────────────┐              │
+         │              │   PostgreSQL    │              │
+         │              │   (Port 5432)   │              │
+         │              └─────────────────┘              │
+         │                       │                       │
+         │              ┌─────────────────┐              │
+         │              │     Ollama      │              │
+         │              │   (Port 11434)  │              │
+         │              └─────────────────┘              │
+         │                       │                       │
+         │              ┌─────────────────┐              │
+         │              │    PgAdmin      │              │
+         │              │   (Port 8080)   │              │
+         │              └─────────────────┘              │
+         └──────────────┴─────────────────┴──────────────┘
+```
+
+## 🛠️ Tecnologías Utilizadas
+
+### Frontend
+- **React 18** con TypeScript
+- **Tailwind CSS** para estilos
+- **React Router** para navegación
+- **Axios** para peticiones HTTP
+- **React Hook Form** para formularios
+- **Lucide React** para iconos
+
+### Backend
+- **FastAPI** (Python 3.11)
+- **SQLAlchemy** ORM
+- **PostgreSQL** base de datos
+- **JWT** autenticación
+- **Pydantic** validación de datos
+- **Uvicorn** servidor ASGI
+
+### IA y Procesamiento
+- **Google Gemini AI** para análisis
+- **Ollama** para IA local
+- **OpenCV** para procesamiento de imágenes
+- **Pillow** para manipulación de imágenes
+
+### DevOps
+- **Docker** y **Docker Compose**
+- **Nginx** para servidor web
+- **PowerShell** scripts de automatización
+
+## 🚀 Instalación y Configuración
+
+### Prerrequisitos
+- Docker y Docker Compose
+- PowerShell (Windows)
+- API Key de Google Gemini
+
+### 1. Clonar el repositorio
+```bash
+git clone <repository-url>
+cd TFG
+```
+
+### 2. Configurar variables de entorno
+```powershell
+# Ejecutar script de configuración
+.\setup-env.ps1
+
+# O crear manualmente el archivo .env
+```
+
+### 3. Configurar API Key de Gemini
+Editar el archivo `.env` y añadir tu API key:
+```
+GEMINI_API_KEY=tu_api_key_de_google_gemini_aqui
+```
+
+### 4. Levantar el sistema
+```powershell
+# Levantar todos los servicios
+.\start_system.ps1
+
+# O manualmente
+docker-compose up --build -d
+```
+
+### 5. Acceder al sistema
+- **Frontend**: http://localhost:3000
+- **PgAdmin**: http://localhost:8080
+  - Email: `admin@ticketanalytics.com`
+  - Contraseña: `admin123`
+
+## 📊 Servicios del Sistema
+
+### 🔐 Auth Service (Puerto 8001)
+- Autenticación JWT
+- Registro de usuarios y vendedores
+- Gestión de sesiones
+- Historial de compras
+
+### 🎫 Ticket Service (Puerto 8003)
+- Gestión de tickets digitales
+- Escaneo y procesamiento
+- Integración con gamificación
+- Servicio de tiendas del mercado
+
+### 🎮 Gamification Service (Puerto 8005)
+- Sistema de puntos
+- Recompensas canjeables
+- Badges y logros
+- Estadísticas de usuario
+
+### 🤖 AI Ticket Processor (Puerto 8004)
+- Procesamiento automático de tickets
+- Análisis con Gemini AI
+- Extracción de datos
+- Validación automática
+
+### 👥 CRM Service (Puerto 8006)
+- Gestión de clientes
+- Segmentación automática
+- Campañas de marketing
+- Análisis de preferencias
+
+### 🏢 Main Backend (Puerto 8000)
+- API principal
+- Gestión de usuarios
+- Estadísticas generales
+- Coordinación entre servicios
+
+## 🎯 Funcionalidades por Rol
+
+### 👤 **Usuario Final**
+- Registro e inicio de sesión
+- Escaneo de tickets con cámara
+- Visualización de puntos y recompensas
+- Historial de compras
+- Canje de recompensas
+- QR personal para recibir tickets
+
+### 🏪 **Vendedor**
+- Panel de vendedor
+- QR scanner para validar recompensas
+- Envío de tickets digitales
+- Gestión de clientes
 - Estadísticas de ventas
 
-### Administradores
-- Panel de administración completo
-- Gestión de usuarios y vendedores
-- CRM con segmentación por IA
-- Campañas automáticas con generación de contenido
+### 👨‍💼 **Administrador**
+- Gestión de usuarios
+- Configuración del sistema
+- Campañas de CRM
+- Estadísticas globales
+- Gestión de recompensas
 
-## 🤖 IA Integrada
+## 🗄️ Base de Datos
 
-- **Procesamiento de tickets**: Análisis automático de tickets con Gemini
-- **CRM inteligente**: Segmentación automática de usuarios
-- **Generación de contenido**: Creación automática de mensajes de campaña
-- **Modelos locales**: Qwen2.5 para generación de texto
+### Tablas Principales
+- `users` - Usuarios del sistema
+- `tickets` - Tickets digitales
+- `rewards` - Recompensas disponibles
+- `reward_redemptions` - Canjes de recompensas
+- `user_stats` - Estadísticas de gamificación
+- `market_stores` - Tiendas del mercado
+- `purchase_history` - Historial de compras
 
-## 🛠️ Desarrollo
+### Acceso a Base de Datos
+- **Host**: localhost:5432
+- **Base de datos**: ticket_analytics
+- **Usuario**: ticket_user
+- **Contraseña**: password_segura_2024
 
-### Estructura del Proyecto
-```
-TFG/
-├── modules/
-│   ├── backend/          # Servicios backend
-│   ├── frontend/         # Aplicación React
-│   └── databases/        # Configuración de BD
-├── docker-compose.yml    # Orquestación de servicios
-└── setup-env.ps1        # Script de configuración
-```
+## 🔧 Comandos Útiles
 
-### Comandos Útiles
-
+### Gestión de Docker
 ```powershell
-# Reconstruir un servicio específico
-docker compose up -d --build crm-service
+# Ver estado de servicios
+docker-compose ps
 
 # Ver logs de un servicio
-docker compose logs crm-service
+docker-compose logs -f [service-name]
+
+# Reiniciar un servicio
+docker-compose restart [service-name]
 
 # Parar todos los servicios
-docker compose down
+docker-compose down
 
-# Parar y eliminar volúmenes
-docker compose down -v
+# Reconstruir y levantar
+docker-compose up --build -d
 ```
 
-## 🔒 Seguridad
+### Gestión de Base de Datos
+```powershell
+# Acceder a PostgreSQL
+docker-compose exec postgres psql -U ticket_user -d ticket_analytics
 
-- Todas las credenciales están externalizadas en variables de entorno
-- API keys y secretos no están hardcodeados
-- Autenticación JWT implementada
-- CORS configurado para desarrollo
+# Resetear base de datos
+.\modules\databases\postgres\scripts\reset-db.ps1
+
+# Inicializar recompensas
+docker-compose exec gamification-service python init_rewards.py
+```
+
+### Desarrollo Frontend
+```powershell
+# Instalar dependencias
+cd modules/frontend
+npm install
+
+# Ejecutar en modo desarrollo
+npm start
+
+# Construir para producción
+npm run build
+```
+
+## 🐛 Solución de Problemas
+
+### Servicios no inician
+1. Verificar que Docker esté ejecutándose
+2. Comprobar variables de entorno en `.env`
+3. Verificar puertos disponibles
+4. Revisar logs: `docker-compose logs [service-name]`
+
+### Problemas de conexión
+1. Verificar que todos los servicios estén "healthy"
+2. Comprobar configuración de red Docker
+3. Verificar firewall y antivirus
+
+### Problemas de IA
+1. Verificar API Key de Gemini
+2. Comprobar conexión a Ollama
+3. Revisar logs del AI Processor
+
+## 📝 Notas de Desarrollo
+
+### Estructura de Archivos
+```
+TFG/
+├── docker-compose.yml          # Configuración de servicios
+├── setup-env.ps1              # Script de configuración
+├── start_system.ps1           # Script de inicio
+├── .env                       # Variables de entorno
+├── modules/
+│   ├── frontend/              # Aplicación React
+│   ├── backend/               # Microservicios
+│   └── databases/             # Configuración de BD
+└── README.md                  # Este archivo
+```
+
+### Convenciones de Código
+- **Frontend**: TypeScript, componentes funcionales, hooks
+- **Backend**: Python, FastAPI, async/await
+- **Base de datos**: SQLAlchemy, migraciones automáticas
+- **Documentación**: Comentarios en catalán
+
+### Seguridad
+- Autenticación JWT con expiración
+- Validación de datos con Pydantic
+- Variables de entorno para secretos
+- CORS configurado correctamente
 
 ## 📄 Licencia
 
-Proyecto de TFG - Universidad
+Este proyecto es un Trabajo de Fin de Grado (TFG) desarrollado para la Universitat de Barcelona.
+
+## 👥 Autores
+
+- **Desarrollador**: [Tu Nombre]
+- **Tutor**: [Nombre del Tutor]
+- **Universidad**: Universitat de Barcelona
+- **Año**: 2024
+
+---
+
+**Mercat Mediterrani** - Sistema de Gestión de Tickets Digitales con IA y Gamificación 🏪✨

@@ -64,7 +64,7 @@ const CreateTicket: React.FC = () => {
 
   const handleSubmit = async () => {
     if (!user?.id) {
-      setError('Debes estar autenticado para subir tickets');
+      setError('Has d\'estar autenticat per pujar tiquets');
       return;
     }
 
@@ -96,7 +96,7 @@ const CreateTicket: React.FC = () => {
         navigate('/dashboard');
       }, 2000);
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Error al enviar el tiquet');
+      setError(err.response?.data?.detail || 'Error en enviar el tiquet');
     } finally {
       setLoading(false);
     }

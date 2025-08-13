@@ -45,8 +45,8 @@ const Dashboard: React.FC = () => {
         setGamificationStats(stats);
         setError(null);
       } catch (err) {
-        console.error('Error cargando estadísticas de gamificación:', err);
-        setError('No se pudieron cargar las estadísticas de gamificación');
+        console.error('Error carregant estadístiques de gamificació:', err);
+        setError('No es van poder carregar les estadístiques de gamificació');
       } finally {
         setLoading(false);
       }

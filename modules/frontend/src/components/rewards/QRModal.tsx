@@ -39,7 +39,7 @@ const QRModal: React.FC<QRModalProps> = ({
         }
       }, (error) => {
         if (error) {
-          console.error('Error generando QR:', error);
+          console.error('Error generant QR:', error);
         }
       });
     }
@@ -51,7 +51,7 @@ const QRModal: React.FC<QRModalProps> = ({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error('Error copiando código:', err);
+      console.error('Error copiant codi:', err);
     }
   };
 
@@ -71,7 +71,7 @@ const QRModal: React.FC<QRModalProps> = ({
       <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-bold text-gray-900">Recompensa Canjeada</h3>
+          <h3 className="text-xl font-bold text-gray-900">Recompensa Canviada</h3>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -94,7 +94,7 @@ const QRModal: React.FC<QRModalProps> = ({
           
           <div className="bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-lg">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-medium text-gray-700">Código de Canje:</span>
+              <span className="text-sm font-medium text-gray-700">Codi de Canvi:</span>
               <button
                 onClick={handleCopyCode}
                 className="flex items-center space-x-1 text-blue-600 hover:text-blue-700 transition-colors"

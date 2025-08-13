@@ -52,8 +52,8 @@ const RewardsPage: React.FC = () => {
       setRewards(rewardsData);
       setUserStats(statsData);
     } catch (err) {
-      console.error('Error cargando datos:', err);
-      setError('No se pudieron cargar las recompensas');
+      console.error('Error carregant dades:', err);
+      setError('No es van poder carregar les recompenses');
     } finally {
       setLoading(false);
     }
