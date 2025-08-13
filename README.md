@@ -328,10 +328,9 @@ Este proyecto es un Trabajo de Fin de Grado (TFG) desarrollado para la Universit
 
 ## 👥 Autores
 
-- **Desarrollador**: [Tu Nombre]
-- **Tutor**: [Nombre del Tutor]
-- **Universidad**: Universitat de Barcelona
-- **Año**: 2024
+- **Desarrollador**: Yani Aici
+- **Universidad**: Universitat Rovira i Virgili
+- **Año**: 2025
 
 ---
 
