@@ -1,4 +1,4 @@
-# 🏪 Mercat Mediterrani - Sistema de Gestión de Tickets Digitales
+# 🏪 Mercat Mediterrani - Aplicación de Gamificación y Análisis para mercados
 
 Sistema completo de gestión de tickets digitales para mercados, con gamificación, IA y CRM integrado. Desarrollado como Trabajo de Fin de Grado (TFG).
 
