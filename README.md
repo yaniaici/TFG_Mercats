@@ -324,7 +324,7 @@ TFG/
 
 ## 📄 Licencia
 
-Este proyecto es un Trabajo de Fin de Grado (TFG) desarrollado para la Universitat de Barcelona.
+Este proyecto es un Trabajo de Fin de Grado (TFG) desarrollado para la Universitat Rovira i Virgili.
 
 ## 👥 Autores
 
