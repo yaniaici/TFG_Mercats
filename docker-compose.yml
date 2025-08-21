@@ -212,6 +212,8 @@ services:
     build:
       context: ./modules/frontend
       dockerfile: Dockerfile
+      args:
+        - REACT_APP_ENVIRONMENT=${REACT_APP_ENVIRONMENT}
     container_name: tfg_frontend
     restart: unless-stopped
     ports:

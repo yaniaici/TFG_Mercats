@@ -12,6 +12,12 @@ RUN npm install
 # Copiar código fuente
 COPY . .
 
+# Definir argumento de build para la variable de entorno
+ARG REACT_APP_ENVIRONMENT
+
+# Establecer la variable de entorno para el build
+ENV REACT_APP_ENVIRONMENT=$REACT_APP_ENVIRONMENT
+
 # Construir la aplicación
 RUN npm run build
 

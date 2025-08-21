@@ -50,8 +50,8 @@ const TicketHistory: React.FC = () => {
       setError(null);
       
       const url = statusFilter === 'all' 
-        ? `http://localhost:8003/tickets/history/${user?.id}`
-        : `http://localhost:8003/tickets/history/${user?.id}?status=${statusFilter}`;
+        ? `${process.env.REACT_APP_ENVIRONMENT === 'production' ? 'http://mercatmediterrani.com:8003' : 'http://localhost:8003'}/tickets/history/${user?.id}`
+        : `${process.env.REACT_APP_ENVIRONMENT === 'production' ? 'http://mercatmediterrani.com:8003' : 'http://localhost:8003'}/tickets/history/${user?.id}?status=${statusFilter}`;
       
       const response = await fetch(url);
       

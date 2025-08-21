@@ -3,7 +3,9 @@ import axios from 'axios';
 
   // API del auth-service
   const authApi = axios.create({
-    baseURL: 'http://localhost:8001'
+    baseURL: process.env.REACT_APP_ENVIRONMENT === 'production' 
+      ? 'http://mercatmediterrani.com:8001' 
+      : 'http://localhost:8001'
   });
 
 authApi.interceptors.response.use(

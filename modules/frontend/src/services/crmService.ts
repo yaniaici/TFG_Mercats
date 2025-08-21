@@ -1,6 +1,10 @@
 import axios from 'axios';
 
-const crmApi = axios.create({ baseURL: 'http://localhost:8006' });
+const crmApi = axios.create({ 
+  baseURL: process.env.REACT_APP_ENVIRONMENT === 'production' 
+    ? 'http://mercatmediterrani.com:8006' 
+    : 'http://localhost:8006'
+});
 
 export const setCrmToken = (token: string | null) => {
   if (token) crmApi.defaults.headers.common['Authorization'] = `Bearer ${token}`;

@@ -33,7 +33,7 @@ const TicketFeed: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      const response = await fetch(`http://localhost:8003/tickets/?user_id=${user?.id}`);
+              const response = await fetch(`${process.env.REACT_APP_ENVIRONMENT === 'production' ? 'http://mercatmediterrani.com:8003' : 'http://localhost:8003'}/tickets/?user_id=${user?.id}`);
       
       if (!response.ok) {
         throw new Error('Error al obtenir tiquets');

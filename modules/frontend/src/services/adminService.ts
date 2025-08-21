@@ -1,6 +1,10 @@
 import axios from 'axios';
 
-const authApi = axios.create({ baseURL: 'http://localhost:8001' });
+const authApi = axios.create({ 
+  baseURL: process.env.REACT_APP_ENVIRONMENT === 'production' 
+    ? 'http://mercatmediterrani.com:8001' 
+    : 'http://localhost:8001'
+});
 
 export const setAdminToken = (token: string | null) => {
   if (token) authApi.defaults.headers.common['Authorization'] = `Bearer ${token}`;
