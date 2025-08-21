@@ -9,9 +9,4 @@ ENV POSTGRES_PASSWORD=ticket_password
 COPY init-scripts/ /docker-entrypoint-initdb.d/
 
 # Exponer puerto
-EXPOSE 5432
-
-# Configuraciones adicionales de PostgreSQL
-COPY postgresql.conf /var/lib/postgresql/data/postgresql.conf
-
-CMD ["postgres", "-c", "config_file=/var/lib/postgresql/data/postgresql.conf"] 
+EXPOSE 5432 

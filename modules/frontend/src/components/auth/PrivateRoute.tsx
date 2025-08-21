@@ -22,7 +22,7 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
   }
 
   // Enrutar según rol para evitar accesos cruzados al dashboard de usuario
-  const role = (user as any)?.role || (user as any)?.preferences?.role;
+  const role = (user as any)?.role;
   if (role === 'admin') {
     return <Navigate to="/admin" replace />;
   }

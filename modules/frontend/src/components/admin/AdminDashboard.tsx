@@ -200,9 +200,9 @@ const AdminDashboard: React.FC = () => {
           <div className="flex items-center gap-2 text-gray-600"><Loader2 className="h-4 w-4 animate-spin" /> Carregant resum...</div>
         )}
 
-        <Section title="Usuaris">
+        <Section title="Usuaris (no venedors ni admins)">
           <div className="space-y-2">
-            {users.map(u => (
+            {users.filter(u => u.role === 'user').map(u => (
               <div key={u.id} className="flex items-center justify-between bg-white p-3 rounded border">
                 <div>
                   <div className="font-medium">{u.email}</div>
@@ -239,11 +239,30 @@ const AdminDashboard: React.FC = () => {
 
         <Section title="Venedors">
           <div className="space-y-2">
-            {vendors.map(v => (
+            {vendors.filter(v => v.role === 'vendor').map(v => (
               <div key={v.id} className="flex items-center justify-between bg-white p-3 rounded border">
                 <div>
                   <div className="font-medium">{v.email}</div>
                   <div className="text-sm text-gray-500">{v.role}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Section>
+
+        <Section title="Tots els usuaris (amb rols)">
+          <div className="space-y-2">
+            {users.map(u => (
+              <div key={u.id} className="flex items-center justify-between bg-white p-3 rounded border">
+                <div>
+                  <div className="font-medium">{u.email}</div>
+                  <div className={`text-sm px-2 py-1 rounded inline-block ${
+                    u.role === 'admin' ? 'bg-purple-100 text-purple-800' :
+                    u.role === 'vendor' ? 'bg-blue-100 text-blue-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {u.role}
+                  </div>
                 </div>
               </div>
             ))}

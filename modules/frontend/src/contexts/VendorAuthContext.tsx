@@ -1,10 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import axios from 'axios';
 
-// API del auth-service
-const authApi = axios.create({
-  baseURL: 'http://localhost:8001'
-});
+  // API del auth-service
+  const authApi = axios.create({
+    baseURL: 'http://localhost:8001'
+  });
 
 authApi.interceptors.response.use(
   (response) => response,
@@ -20,6 +20,7 @@ authApi.interceptors.response.use(
 interface VendorUser {
   id: string;
   email: string;
+  role: 'user' | 'vendor' | 'admin';
   preferences?: { [key: string]: any };
 }
 
@@ -60,9 +61,9 @@ export const VendorAuthProvider: React.FC<VendorAuthProviderProps> = ({ children
   const verifyToken = async () => {
     try {
       const response = await authApi.get('/users/me');
-      // Verificar rol en preferences.role === 'vendor'
+      // Verificar rol directamente en el campo role
       const data = response.data as VendorUser;
-      const role = (data as any)?.preferences?.role;
+      const role = (data as any)?.role;
       if (role !== 'vendor') {
         throw new Error('No autorizado como vendedor');
       }
@@ -78,7 +79,7 @@ export const VendorAuthProvider: React.FC<VendorAuthProviderProps> = ({ children
     const response = await authApi.post('/auth/login', { email, password });
     const { access_token, user } = response.data;
     // Exigir rol vendedor
-    const role = user?.preferences?.role;
+    const role = user?.role;
     if (role !== 'vendor') {
       throw new Error('Este usuario no tiene rol de vendedor');
     }

@@ -75,7 +75,7 @@ async def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
     hashed_password = pwd_context.hash(user_data.password)
     # Validar rol solicitado
     allowed_roles = {"user", "vendor", "admin"}
-    role_value = user_data.role if (hasattr(user_data, 'role') and user_data.role in allowed_roles) else "user"
+    role_value = user_data.role if user_data.role in allowed_roles else "user"
     
     db_user = User(
         email=user_data.email,
@@ -94,7 +94,16 @@ async def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
     return {
         "access_token": access_token,
         "token_type": "bearer",
-        "user": db_user,
+        "user": {
+            "id": db_user.id,
+            "email": db_user.email,
+            "role": db_user.role,
+            "preferences": db_user.preferences,
+            "is_active": db_user.is_active,
+            "registration_date": db_user.registration_date,
+            "created_at": db_user.created_at,
+            "updated_at": db_user.updated_at
+        },
         "user_id": str(db_user.id),
         "expires_in": settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
     }
@@ -125,7 +134,16 @@ async def login_user(user_credentials: UserLogin, db: Session = Depends(get_db))
     return {
         "access_token": access_token,
         "token_type": "bearer",
-        "user": user,
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "role": user.role,
+            "preferences": user.preferences,
+            "is_active": user.is_active,
+            "registration_date": user.registration_date,
+            "created_at": user.created_at,
+            "updated_at": user.updated_at
+        },
         "user_id": str(user.id),
         "expires_in": expires_in
     }

@@ -20,7 +20,7 @@ const Login: React.FC = () => {
 
     try {
       const u = await login(email, password);
-      const role = (u as any)?.preferences?.role;
+      const role = (u as any)?.role;
       if (role === 'vendor') {
         navigate('/vendor/dashboard');
       } else {

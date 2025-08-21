@@ -115,4 +115,6 @@ class TicketProcessingResult(BaseModel):
     num_productos: int = Field(default=0, description="Número de productos")
     procesado_correctamente: bool = Field(default=False, description="Si el procesamiento fue exitoso")
     es_tienda_mercado: bool = Field(default=False, description="Si la tienda es del mercado")
+    duplicate_detected: bool = Field(default=False, description="Si se detectó un ticket duplicado")
+    status_message: Optional[str] = Field(None, description="Mensaje de estado del procesamiento")
     error: Optional[str] = Field(None, description="Error si el procesamiento falló") 

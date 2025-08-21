@@ -88,6 +88,45 @@ class AutoTicketProcessor:
         
         return False
     
+    def check_duplicate_before_processing(self, ticket: Dict, ai_result: Dict) -> bool:
+        """Verificar si el ticket es un duplicado antes de procesarlo"""
+        try:
+            # Extraer información del resultado de la IA
+            fecha = ai_result.get('fecha', '')
+            productos = ai_result.get('productos', [])
+            user_id = ticket.get('user_id', '')
+            
+            if not fecha or not productos or not user_id:
+                print(f"      ⚠️ Información insuficiente para verificar duplicados")
+                return False
+            
+            # Llamar al endpoint de verificación de duplicados
+            response = requests.post(
+                f"{self.ticket_service_url}/check-duplicate",
+                json={
+                    "user_id": user_id,
+                    "fecha": fecha,
+                    "productos": productos
+                },
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                if result.get('is_duplicate', False):
+                    print(f"      ⚠️ Ticket duplicado detectado: {result.get('reason', '')}")
+                    return True
+                else:
+                    print(f"      ✅ No es duplicado: {result.get('reason', '')}")
+                    return False
+            else:
+                print(f"      ⚠️ Error verificando duplicados: {response.status_code}")
+                return False
+                
+        except Exception as e:
+            print(f"      ⚠️ Error verificando duplicados: {str(e)}")
+            return False
+
     def process_single_ticket(self, ticket: Dict) -> Dict:
         """Procesar un ticket individual"""
         ticket_id = ticket.get('id')
@@ -96,6 +135,60 @@ class AutoTicketProcessor:
         print(f"   🎫 Procesando ticket: {filename} (ID: {ticket_id})")
         
         try:
+            # Primero, procesar con IA para extraer información
+            print(f"      🤖 Procesando con IA para extraer información...")
+            
+            # Obtener la imagen en base64 del ticket
+            image_base64 = ticket.get('image_base64', '')
+            print(f"      📁 Imagen en base64: {'Sí' if image_base64 else 'No'}")
+            if not image_base64:
+                print(f"      ❌ No se encontró la imagen en base64")
+                return {"success": False, "ticket_id": ticket_id, "error": "No se encontró la imagen en base64"}
+            
+            print(f"      ✅ Imagen obtenida correctamente ({len(image_base64)} caracteres)")
+            
+            # Procesar con IA
+            print(f"      🤖 Enviando a IA para procesamiento...")
+            ai_response = requests.post(
+                f"http://ai-ticket-processor:8004/process-ticket-api",
+                json={
+                    "image_base64": image_base64,
+                    "market_stores": self.get_market_stores()
+                },
+                timeout=60
+            )
+            print(f"      📡 Respuesta de IA: {ai_response.status_code}")
+            
+            if ai_response.status_code != 200:
+                error_msg = f"Error procesando con IA: {ai_response.status_code}"
+                print(f"      ❌ {error_msg}")
+                return {"success": False, "ticket_id": ticket_id, "error": error_msg}
+            
+            ai_result = ai_response.json()
+            print(f"      ✅ IA procesó correctamente - Fecha: {ai_result.get('fecha', 'N/A')}, Productos: {len(ai_result.get('productos', []))}")
+            
+            # Verificar si es un duplicado antes de procesar
+            if self.check_duplicate_before_processing(ticket, ai_result):
+                # Si es duplicado, marcar el ticket como duplicado directamente
+                print(f"      ⚠️ Ticket duplicado detectado, marcando como duplicado...")
+                duplicate_response = requests.patch(
+                    f"{self.ticket_service_url}/tickets/{ticket_id}/mark-duplicate",
+                    json={
+                        "processing_result": ai_result,
+                        "status_message": "Ticket duplicado detectado"
+                    },
+                    timeout=30
+                )
+                
+                if duplicate_response.status_code == 200:
+                    print(f"      ✅ Ticket marcado como duplicado")
+                    return {"success": True, "ticket_id": ticket_id, "result": {"ticket_status": "duplicate"}}
+                else:
+                    print(f"      ❌ Error marcando como duplicado: {duplicate_response.status_code}")
+                    return {"success": False, "ticket_id": ticket_id, "error": "Error marcando como duplicado"}
+            
+            # Si no es duplicado, procesar normalmente
+            print(f"      ✅ No es duplicado, procesando normalmente...")
             response = requests.post(
                 f"{self.ticket_service_url}/tickets/{ticket_id}/process/",
                 timeout=120  # 2 minutos de timeout por ticket

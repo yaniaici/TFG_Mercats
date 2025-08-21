@@ -75,6 +75,8 @@ const TicketFeed: React.FC = () => {
         return <Clock className="h-6 w-6 text-market-600" />;
       case 'failed':
         return <AlertCircle className="h-6 w-6 text-terracotta-600" />;
+      case 'duplicate':
+        return <AlertCircle className="h-6 w-6 text-orange-600" />;
       default:
         return <Receipt className="h-6 w-6 text-gray-600" />;
     }
@@ -90,6 +92,8 @@ const TicketFeed: React.FC = () => {
         return 'Pendent';
       case 'failed':
         return 'Error';
+      case 'duplicate':
+        return 'Duplicat';
       default:
         return 'Desconegut';
     }
@@ -104,6 +108,8 @@ const TicketFeed: React.FC = () => {
       case 'pending':
         return 'badge-info';
       case 'failed':
+        return 'badge-warning';
+      case 'duplicate':
         return 'badge-warning';
       default:
         return 'badge-info';

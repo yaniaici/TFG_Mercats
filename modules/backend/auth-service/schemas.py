@@ -7,10 +7,11 @@ from uuid import UUID
 class UserBase(BaseModel):
     email: str = Field(..., description="Email del usuario")
     preferences: Optional[Dict[str, Any]] = Field(default={}, description="Preferencias del usuario")
-    role: Optional[str] = Field(default="user", description="Rol del usuario: user | vendor | admin")
+    role: str = Field(default="user", description="Rol del usuario: user | vendor | admin")
 
 class UserCreate(UserBase):
     password: str = Field(..., description="Contraseña del usuario")
+    role: Optional[str] = Field(default="user", description="Rol del usuario: user | vendor | admin")
 
 class UserUpdate(BaseModel):
     email: Optional[str] = Field(None, description="Email del usuario")
@@ -27,6 +28,9 @@ class UserResponse(UserBase):
     
     class Config:
         from_attributes = True
+        json_encoders = {
+            UUID: str
+        }
 
 # Esquemas para PurchaseHistory
 class PurchaseHistoryBase(BaseModel):

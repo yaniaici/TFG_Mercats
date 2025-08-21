@@ -5,7 +5,7 @@ from typing import List
 import os
 import uuid
 import shutil
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from database import get_db
 from models import Ticket, MarketStore
@@ -17,6 +17,7 @@ from schemas import (
 from market_store_service import MarketStoreService
 from purchase_history_client import get_purchase_history_client
 from gamification_client import get_gamification_client
+from config import settings
 # Configuración del AI Ticket Processor
 AI_PROCESSOR_URL = "http://ai-ticket-processor:8004"
 AI_AVAILABLE = True
@@ -164,6 +165,147 @@ def update_purchase_history(ticket: Ticket, processing_result: dict) -> bool:
             
     except Exception as e:
         print(f"   💥 Error en actualización de historial de compras: {str(e)}")
+        return False
+
+def check_duplicate_ticket(processing_result: dict, user_id: uuid.UUID, db: Session) -> bool:
+    """
+    Verificar si existe un ticket duplicado basado en fecha, hora y productos
+    
+    Args:
+        processing_result: Resultado del procesamiento de IA
+        user_id: ID del usuario
+        db: Sesión de base de datos
+        
+    Returns:
+        True si es un duplicado, False si no
+    """
+    # Verificar si la detección de duplicados está habilitada
+    if not settings.ENABLE_DUPLICATE_DETECTION:
+        print("   ℹ️  Detección de duplicados deshabilitada por configuración")
+        return False
+        
+    print(f"   🔍 Verificando duplicados para usuario {user_id}")
+    
+    try:
+        # Obtener fecha y hora del ticket actual
+        fecha_str = processing_result.get('fecha', '')
+        if not fecha_str:
+            print("   ❌ No se encontró fecha en el processing_result")
+            return False
+        
+        print(f"   📅 Fecha del ticket actual: {fecha_str}")
+        print(f"   🛒 Productos del ticket actual: {len(processing_result.get('productos', []))}")
+        
+        # Parsear fecha y hora del ticket actual
+        try:
+            if ':' in fecha_str:  # Si incluye hora
+                purchase_datetime = datetime.strptime(fecha_str, "%d/%m/%Y %H:%M")
+            else:  # Solo fecha
+                purchase_datetime = datetime.strptime(fecha_str, "%d/%m/%Y")
+        except ValueError as e:
+            print(f"   ❌ Error parseando fecha del ticket actual: {e}")
+            return False
+        
+        # Obtener productos del ticket actual
+        productos = processing_result.get('productos', [])
+        if not productos:
+            print("   ❌ No se encontraron productos en el processing_result")
+            return False
+        
+        # Normalizar productos para comparación (ordenar campos)
+        def normalize_product(product):
+            if isinstance(product, dict):
+                # Ordenar campos: nombre, cantidad, precio
+                return {
+                    'nombre': str(product.get('nombre', '')),
+                    'cantidad': str(product.get('cantidad', '')),
+                    'precio': str(product.get('precio', ''))
+                }
+            return product
+        
+        productos_normalized = [normalize_product(p) for p in productos]
+        productos_sorted = sorted([str(p) for p in productos_normalized])
+        productos_hash = hash(tuple(productos_sorted))
+        print(f"   🛒 Productos del ticket actual (normalizados): {productos_sorted[:3]}...")  # Mostrar solo los primeros 3
+        print(f"   🛒 Hash de productos del ticket actual: {productos_hash}")
+        
+        # Buscar tickets del mismo usuario que ya han sido procesados
+        existing_tickets = db.query(Ticket).filter(
+            Ticket.user_id == user_id,
+            Ticket.status.in_(['done_approved', 'done_rejected', 'duplicate']),
+            Ticket.processing_result.isnot(None)
+        ).all()
+        
+        print(f"   🔍 Encontrados {len(existing_tickets)} tickets procesados para comparar")
+        
+        # Verificar cada ticket existente
+        for existing_ticket in existing_tickets:
+            existing_result = existing_ticket.processing_result or {}
+            existing_productos = existing_result.get('productos', [])
+            existing_fecha = existing_result.get('fecha', '')
+            
+            print(f"   🔍 Comparando con ticket {existing_ticket.id} - fecha: {existing_fecha}, productos: {len(existing_productos)}")
+            
+            # Verificar que tenga productos y fecha
+            if existing_productos and existing_fecha:
+                try:
+                    # Parsear fecha del ticket existente
+                    if ':' in existing_fecha:
+                        existing_datetime = datetime.strptime(existing_fecha, "%d/%m/%Y %H:%M")
+                    else:
+                        existing_datetime = datetime.strptime(existing_fecha, "%d/%m/%Y")
+                    
+                    # Verificar si está en la ventana de tiempo (±5 minutos)
+                    time_window_start = purchase_datetime - timedelta(minutes=5)
+                    time_window_end = purchase_datetime + timedelta(minutes=5)
+                    
+                    print(f"   ⏰ Ventana de tiempo: {time_window_start} a {time_window_end}")
+                    print(f"   ⏰ Fecha del ticket existente: {existing_datetime}")
+                    
+                    if time_window_start <= existing_datetime <= time_window_end:
+                        print(f"   ⏰ Coincidencia de fecha encontrada: {existing_fecha} está en ventana de ±5 minutos")
+                        # Verificar si los productos coinciden
+                        existing_productos_normalized = [normalize_product(p) for p in existing_productos]
+                        existing_productos_sorted = sorted([str(p) for p in existing_productos_normalized])
+                        existing_productos_hash = hash(tuple(existing_productos_sorted))
+                        
+                        print(f"   🛒 Productos del ticket existente (normalizados): {existing_productos_sorted[:3]}...")  # Mostrar solo los primeros 3
+                        print(f"   🛒 Comparando hashes: actual={productos_hash}, existente={existing_productos_hash}")
+                        
+                        # Comparación directa de productos (más robusta)
+                        productos_actual_set = set(str(p) for p in productos_normalized)
+                        productos_existente_set = set(str(p) for p in existing_productos_normalized)
+                        
+                        print(f"   🛒 Comparación directa: {len(productos_actual_set)} vs {len(productos_existente_set)} productos únicos")
+                        
+                        if existing_productos_hash == productos_hash:
+                            print(f"   🔍 Duplicado encontrado (hash): fecha={existing_fecha}, productos={len(existing_productos)}")
+                            return True
+                        elif productos_actual_set == productos_existente_set:
+                            print(f"   🔍 Duplicado encontrado (comparación directa): fecha={existing_fecha}, productos={len(existing_productos)}")
+                            return True
+                        else:
+                            print(f"   ❌ Productos no coinciden (hash ni comparación directa)")
+                            # Mostrar diferencias para debug
+                            diff_actual = productos_actual_set - productos_existente_set
+                            diff_existente = productos_existente_set - productos_actual_set
+                            if diff_actual:
+                                print(f"   🔍 Productos solo en actual: {list(diff_actual)[:2]}...")
+                            if diff_existente:
+                                print(f"   🔍 Productos solo en existente: {list(diff_existente)[:2]}...")
+                    else:
+                        print(f"   ⏰ Fecha fuera de la ventana de tiempo")
+                except ValueError as e:
+                    print(f"   ❌ Error parseando fecha del ticket existente: {e}")
+                    continue
+            else:
+                print(f"   ❌ Ticket existente no tiene productos o fecha válidos")
+        
+        print(f"   ✅ No se encontraron duplicados")
+        return False
+        
+    except Exception as e:
+        print(f"   ❌ Error verificando duplicados: {e}")
         return False
 
 def update_gamification(ticket: Ticket, processing_result: dict) -> bool:
@@ -503,11 +645,29 @@ def get_tickets(
         response_tickets.append(response_dict)
     return response_tickets
 
-@app.get("/tickets/pending/", response_model=List[TicketResponse])
+@app.get("/tickets/pending/", response_model=List[dict])
 def get_pending_tickets(db: Session = Depends(get_db)):
-    """Obtener todos los tickets pendientes de procesamiento"""
+    """Obtener todos los tickets pendientes de procesamiento con imagen en base64"""
     tickets = db.query(Ticket).filter(Ticket.status == "pending").all()
-    return [TicketResponse.from_orm(ticket) for ticket in tickets]
+    
+    result = []
+    for ticket in tickets:
+        ticket_data = TicketResponse.from_orm(ticket).dict()
+        
+        # Leer la imagen y convertirla a base64
+        try:
+            import base64
+            with open(ticket.file_path, 'rb') as file:
+                image_data = file.read()
+                image_base64 = base64.b64encode(image_data).decode('utf-8')
+                ticket_data['image_base64'] = image_base64
+        except Exception as e:
+            print(f"Error leyendo imagen para ticket {ticket.id}: {str(e)}")
+            ticket_data['image_base64'] = None
+        
+        result.append(ticket_data)
+    
+    return result
 
 @app.post("/tickets/{ticket_id}/process/")
 def process_ticket(
@@ -524,12 +684,35 @@ def process_ticket(
         if ticket.status != "pending":
             raise HTTPException(status_code=400, detail="Ticket ya procesado")
         
+        # Si el ticket ya tiene processing_result, significa que ya fue procesado por IA
+        # y posiblemente marcado como duplicado
+        if ticket.processing_result and ticket.status == "duplicate":
+            return {
+                "message": "Ticket ya marcado como duplicado",
+                "ticket": TicketResponse.from_orm(ticket),
+                "processing_result": ticket.processing_result
+            }
+        
         if not AI_AVAILABLE:
             raise HTTPException(status_code=503, detail="AI system no disponible")
         
-        # Procesar con IA via HTTP
-        market_service = get_market_store_service(db)
-        result = process_ticket_with_ai(ticket.file_path, market_service)
+        # Si el ticket ya tiene processing_result, usarlo en lugar de procesar de nuevo
+        if ticket.processing_result:
+            result = ticket.processing_result
+        else:
+            # Procesar con IA via HTTP
+            market_service = get_market_store_service(db)
+            result = process_ticket_with_ai(ticket.file_path, market_service)
+        
+        # Verificar si es un ticket duplicado
+        if result.get('procesado_correctamente', False):
+            is_duplicate = check_duplicate_ticket(result, ticket.user_id, db)
+            if is_duplicate:
+                # Marcar como duplicado
+                result['ticket_status'] = 'duplicate'
+                result['status_message'] = 'Ticket duplicado detectado'
+                result['duplicate_detected'] = True
+                print(f"   ⚠️ Ticket duplicado detectado para usuario {ticket.user_id}")
         
         # Actualizar ticket
         ticket.status = result.get('ticket_status', 'failed')
@@ -539,12 +722,13 @@ def process_ticket(
         db.commit()
         db.refresh(ticket)
         
-        # Actualizar historial de compras si el ticket fue procesado correctamente
-        if result.get('ticket_status') in ['done_approved', 'done_rejected']:
+        # Solo actualizar historial de compras si el ticket fue procesado correctamente y no es duplicado
+        if result.get('ticket_status') in ['done_approved', 'done_rejected'] and not result.get('duplicate_detected', False):
             update_purchase_history(ticket, result)
         
-        # Actualizar gamificación para todos los tickets procesados
-        update_gamification(ticket, result)
+        # Actualizar gamificación para todos los tickets procesados (excepto duplicados)
+        if not result.get('duplicate_detected', False):
+            update_gamification(ticket, result)
         
         return {
             "message": "Ticket procesado correctamente",
@@ -582,19 +766,32 @@ def process_all_pending_tickets(db: Session = Depends(get_db)):
             try:
                 result = process_ticket_with_ai(ticket.file_path, market_service)
                 
+                # Verificar si es un ticket duplicado
+                if result.get('procesado_correctamente', False):
+                    is_duplicate = check_duplicate_ticket(result, ticket.user_id, db)
+                    if is_duplicate:
+                        # Marcar como duplicado
+                        result['ticket_status'] = 'duplicate'
+                        result['status_message'] = 'Ticket duplicado detectado'
+                        result['duplicate_detected'] = True
+                        print(f"   ⚠️ Ticket duplicado detectado para usuario {ticket.user_id}")
+                
                 # Actualizar ticket
                 ticket.status = result.get('ticket_status', 'failed')
                 ticket.processing_result = result
                 ticket.updated_at = datetime.now()
                 
-                if result.get('ticket_status') in ['done_approved', 'done_rejected']:
+                if result.get('ticket_status') in ['done_approved', 'done_rejected'] and not result.get('duplicate_detected', False):
                     processed_count += 1
                     update_purchase_history(ticket, result) # Actualizar historial para tickets aprobados/rechazados
+                elif result.get('ticket_status') == 'duplicate':
+                    processed_count += 1  # Contar como procesado pero no actualizar historial
                 else:
                     failed_count += 1
                 
-                # Actualizar gamificación para todos los tickets procesados
-                update_gamification(ticket, result)
+                # Actualizar gamificación para todos los tickets procesados (excepto duplicados)
+                if not result.get('duplicate_detected', False):
+                    update_gamification(ticket, result)
                     
             except Exception as e:
                 ticket.status = "failed"
@@ -693,4 +890,153 @@ def get_user_digital_tickets(
 @app.get("/health")
 def health_check():
     """Verificar estado del servicio"""
-    return {"status": "healthy", "timestamp": datetime.now().isoformat()} 
+    return {
+        "status": "healthy", 
+        "timestamp": datetime.now().isoformat(),
+        "duplicate_detection_enabled": settings.ENABLE_DUPLICATE_DETECTION
+    }
+
+@app.get("/config/duplicate-detection")
+def get_duplicate_detection_config():
+    """Obtener configuración actual de detección de duplicados"""
+    return {
+        "enabled": settings.ENABLE_DUPLICATE_DETECTION,
+        "description": "Controla si el sistema detecta y marca tickets duplicados"
+    }
+
+@app.post("/config/duplicate-detection")
+def update_duplicate_detection_config(enabled: bool):
+    """Actualizar configuración de detección de duplicados (solo para desarrollo)"""
+    if settings.DEBUG:
+        # En modo debug, permitir cambiar la configuración
+        settings.ENABLE_DUPLICATE_DETECTION = enabled
+        return {
+            "enabled": settings.ENABLE_DUPLICATE_DETECTION,
+            "message": f"Detección de duplicados {'habilitada' if enabled else 'deshabilitada'}"
+        }
+    else:
+        raise HTTPException(
+            status_code=403, 
+            detail="Cambio de configuración no permitido en producción"
+        )
+
+@app.post("/check-duplicate")
+def check_duplicate_before_processing(
+    request: dict,
+    db: Session = Depends(get_db)
+):
+    """
+    Verificar si existe un ticket duplicado antes del procesamiento
+    
+    Args:
+        user_id: ID del usuario
+        fecha: Fecha del ticket en formato dd/mm/yyyy o dd/mm/yyyy hh:mm
+        productos: Lista de productos del ticket
+        db: Sesión de base de datos
+        
+    Returns:
+        True si es un duplicado, False si no
+    """
+    # Extraer datos del request
+    user_id = request.get('user_id', '')
+    fecha = request.get('fecha', '')
+    productos = request.get('productos', [])
+    
+    if not user_id or not fecha or not productos:
+        return {"is_duplicate": False, "reason": "Datos insuficientes para verificar duplicados"}
+    
+    # Verificar si la detección de duplicados está habilitada
+    if not settings.ENABLE_DUPLICATE_DETECTION:
+        return {"is_duplicate": False, "reason": "Detección de duplicados deshabilitada"}
+    
+    try:
+        # Parsear fecha y hora
+        try:
+            if ':' in fecha:  # Si incluye hora
+                purchase_datetime = datetime.strptime(fecha, "%d/%m/%Y %H:%M")
+            else:  # Solo fecha
+                purchase_datetime = datetime.strptime(fecha, "%d/%m/%Y")
+        except ValueError as e:
+            return {"is_duplicate": False, "reason": f"Error parseando fecha: {e}"}
+        
+        # Crear un hash de los productos para comparación
+        productos_hash = hash(tuple(sorted([str(p) for p in productos])))
+        
+        # Buscar tickets del mismo usuario que ya han sido procesados
+        existing_tickets = db.query(Ticket).filter(
+            Ticket.user_id == user_id,
+            Ticket.status.in_(['done_approved', 'done_rejected', 'duplicate']),
+            Ticket.processing_result.isnot(None)
+        ).all()
+        
+        # Verificar cada ticket existente
+        for existing_ticket in existing_tickets:
+            existing_result = existing_ticket.processing_result or {}
+            existing_productos = existing_result.get('productos', [])
+            existing_fecha = existing_result.get('fecha', '')
+            
+            # Verificar que tenga productos y fecha
+            if existing_productos and existing_fecha:
+                try:
+                    # Parsear fecha del ticket existente
+                    if ':' in existing_fecha:
+                        existing_datetime = datetime.strptime(existing_fecha, "%d/%m/%Y %H:%M")
+                    else:
+                        existing_datetime = datetime.strptime(existing_fecha, "%d/%m/%Y")
+                    
+                    # Verificar si está en la ventana de tiempo (±5 minutos)
+                    time_window_start = purchase_datetime - timedelta(minutes=5)
+                    time_window_end = purchase_datetime + timedelta(minutes=5)
+                    
+                    if time_window_start <= existing_datetime <= time_window_end:
+                        # Verificar si los productos coinciden
+                        existing_productos_hash = hash(tuple(sorted([str(p) for p in existing_productos])))
+                        
+                        if existing_productos_hash == productos_hash:
+                            return {
+                                "is_duplicate": True, 
+                                "reason": f"Ticket duplicado encontrado: fecha={existing_fecha}, productos={len(existing_productos)}"
+                            }
+                except ValueError:
+                    continue
+        
+        return {"is_duplicate": False, "reason": "No se encontraron duplicados"}
+        
+    except Exception as e:
+        return {"is_duplicate": False, "reason": f"Error verificando duplicados: {e}"}
+
+@app.patch("/tickets/{ticket_id}/mark-duplicate")
+def mark_ticket_as_duplicate(
+    ticket_id: uuid.UUID,
+    request: dict,
+    db: Session = Depends(get_db)
+):
+    """Marcar un ticket como duplicado"""
+    try:
+        # Obtener ticket
+        ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
+        if not ticket:
+            raise HTTPException(status_code=404, detail="Ticket no encontrado")
+        
+        if ticket.status != "pending":
+            raise HTTPException(status_code=400, detail="Ticket ya procesado")
+        
+        # Extraer datos del request
+        processing_result = request.get('processing_result', {})
+        status_message = request.get('status_message', 'Ticket duplicado detectado')
+        
+        # Marcar como duplicado
+        ticket.status = "duplicate"
+        ticket.processing_result = processing_result
+        ticket.updated_at = datetime.now()
+        
+        db.commit()
+        db.refresh(ticket)
+        
+        return {
+            "message": "Ticket marcado como duplicado",
+            "ticket": TicketResponse.from_orm(ticket)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error marcando ticket como duplicado: {str(e)}") 

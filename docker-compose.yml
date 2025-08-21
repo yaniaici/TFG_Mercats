@@ -46,6 +46,7 @@ services:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - DEBUG=${DEBUG:-false}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - ENABLE_DUPLICATE_DETECTION=${ENABLE_DUPLICATE_DETECTION:-true}
     volumes:
       - ticket_uploads:/app/uploads
     ports:
@@ -157,6 +158,7 @@ services:
       - AUTH_SERVICE_URL=http://auth-service:8001
       - OLLAMA_HOST=http://ollama:11434
       - LLM_MODEL=qwen2.5:0.5b-instruct
+      - NOTIFICATION_SENDER_URL=http://notification-sender:8007
     ports:
       - "${CRM_SERVICE_PORT:-8006}:8006"
     networks:
@@ -168,6 +170,35 @@ services:
         condition: service_started
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8006/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  notification-sender:
+    build:
+      context: ./modules/backend/notification-sender
+      dockerfile: Dockerfile
+    container_name: tfg_notification_sender
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - HOST=0.0.0.0
+      - PORT=8007
+      - DEBUG=${DEBUG:-false}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY}
+      - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY}
+      - VAPID_EMAIL=${VAPID_EMAIL:-noreply@mercat.com}
+    ports:
+      - "${NOTIFICATION_SENDER_PORT:-8007}:8007"
+    networks:
+      - tfg_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8007/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -236,7 +267,7 @@ services:
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
       PGADMIN_CONFIG_SERVER_MODE: 'False'
     ports:
-      - "8080:80"
+      - "${PGADMIN_PORT:-8080}:80"
     volumes:
       - pgadmin_data:/var/lib/pgadmin
     networks:

@@ -92,6 +92,8 @@ const TicketHistory: React.FC = () => {
         return <CheckCircle className="h-6 w-6 text-green-600" />;
       case 'done_rejected':
         return <XCircle className="h-6 w-6 text-red-600" />;
+      case 'duplicate':
+        return <AlertCircle className="h-6 w-6 text-orange-600" />;
       case 'pending':
         return <Clock className="h-6 w-6 text-yellow-600" />;
       case 'failed':
@@ -107,6 +109,8 @@ const TicketHistory: React.FC = () => {
         return 'Aprovat';
       case 'done_rejected':
         return 'Rebutjat';
+      case 'duplicate':
+        return 'Duplicat';
       case 'pending':
         return 'Pendent';
       case 'failed':
@@ -122,6 +126,8 @@ const TicketHistory: React.FC = () => {
         return 'bg-green-100 text-green-800 border-green-200';
       case 'done_rejected':
         return 'bg-red-100 text-red-800 border-red-200';
+      case 'duplicate':
+        return 'bg-orange-100 text-orange-800 border-orange-200';
       case 'pending':
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'failed':
@@ -162,6 +168,7 @@ const TicketHistory: React.FC = () => {
       all: tickets.length,
       done_approved: tickets.filter(t => t.status === 'done_approved').length,
       done_rejected: tickets.filter(t => t.status === 'done_rejected').length,
+      duplicate: tickets.filter(t => t.status === 'duplicate').length,
       pending: tickets.filter(t => t.status === 'pending').length,
       failed: tickets.filter(t => t.status === 'failed').length
     };

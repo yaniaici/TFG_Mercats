@@ -641,6 +641,85 @@ async def dispatch_campaign(campaign_id: UUID, db: Session = Depends(get_db), au
     return [NotificationResponse.model_validate(n) for n in notifications]
 
 
+@app.post("/campaigns/{campaign_id}/send-notifications")
+async def send_campaign_notifications(
+    campaign_id: UUID, 
+    channel: str = Query("webpush", description="Canal de notificación (webpush, android, ios)"),
+    db: Session = Depends(get_db), 
+    authorization: str | None = Header(default=None)
+):
+    """
+    Envía las notificaciones de una campaña a través del notification-sender
+    """
+    await require_admin(authorization.replace("Bearer ", "") if authorization else "")
+    
+    # Obtener campaña
+    c = db.query(Campaign).filter(Campaign.id == campaign_id).first()
+    if not c:
+        raise HTTPException(status_code=404, detail="Campaña no encontrada")
+    if not c.is_active:
+        raise HTTPException(status_code=400, detail="Campaña inactiva")
+
+    # Obtener usuarios de la campaña
+    cs_links = db.query(CampaignSegment).filter(CampaignSegment.campaign_id == c.id).all()
+    user_ids: Set[UUID] = set()
+    for link in cs_links:
+        segment = db.query(Segment).filter(Segment.id == link.segment_id).first()
+        if segment and segment.is_active:
+            user_ids |= await query_user_ids_for_filters(db, segment.filters)
+
+    if not user_ids:
+        return {"message": "No hay usuarios para enviar notificaciones", "sent_count": 0}
+
+    # Preparar notificaciones para el sender
+    import httpx
+    import os
+    
+    notification_sender_url = os.getenv("NOTIFICATION_SENDER_URL", "http://notification-sender:8007")
+    
+    notifications_to_send = []
+    for user_id in user_ids:
+        notifications_to_send.append({
+            "user_id": str(user_id),
+            "message": c.message,
+            "title": c.name,
+            "channel": channel,
+            "data": {
+                "campaign_id": str(campaign_id),
+                "campaign_name": c.name
+            }
+        })
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{notification_sender_url}/send-batch",
+                json={"requests": notifications_to_send},
+                timeout=30.0
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                return {
+                    "message": "Notificaciones enviadas al notification-sender",
+                    "campaign_id": str(campaign_id),
+                    "total_users": len(user_ids),
+                    "sender_response": result
+                }
+            else:
+                raise HTTPException(
+                    status_code=500, 
+                    detail=f"Error del notification-sender: {response.text}"
+                )
+                
+    except Exception as e:
+        logger.error("Error sending notifications", error=str(e))
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error enviando notificaciones: {str(e)}"
+        )
+
+
 # ----------------------------
 # Notificaciones
 # ----------------------------

@@ -31,6 +31,9 @@ class Settings:
     # Configuración de logging
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
     DEBUG: bool = os.getenv("DEBUG", "false").lower() == "true"
+    
+    # Configuración de detección de duplicados
+    ENABLE_DUPLICATE_DETECTION: bool = os.getenv("ENABLE_DUPLICATE_DETECTION", "true").lower() == "true"
 
 # Instancia global de configuración
 settings = Settings() 

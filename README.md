@@ -99,6 +99,40 @@ Sistema completo de gestión de tickets digitales para mercados, con gamificaci�
 - **Pydantic** validación de datos
 - **Uvicorn** servidor ASGI
 
+## 🌐 Configuración con Dominio Personalizado
+
+### Para hosting local con dominio `mercatmediterrani.com`:
+
+1. **Ejecutar el script de configuración:**
+   ```powershell
+   # Ejecutar como administrador
+   .\setup-local-domain.ps1
+   ```
+
+2. **Acceder a la aplicación:**
+   - 🌐 **Frontend**: http://mercatmediterrani.com
+   - 🔧 **API**: http://api.mercatmediterrani.com
+   - 📊 **PgAdmin**: http://localhost:8080
+
+3. **Configuración manual del archivo hosts:**
+   Si el script no funciona, añade manualmente estas líneas a `C:\Windows\System32\drivers\etc\hosts`:
+   ```
+   127.0.0.1 mercatmediterrani.com
+   127.0.0.1 www.mercatmediterrani.com
+   127.0.0.1 api.mercatmediterrani.com
+   ```
+
+### Para hosting en servidor de producción:
+
+1. **Configurar DNS** para apuntar a tu servidor
+2. **Instalar Nginx** y configurar con `nginx.conf`
+3. **Obtener certificados SSL** (Let's Encrypt)
+4. **Ejecutar el script de producción:**
+   ```bash
+   chmod +x deploy-production.sh
+   ./deploy-production.sh
+   ```
+
 ### IA y Procesamiento
 - **Google Gemini AI** para análisis
 - **Ollama** para IA local
@@ -276,6 +310,45 @@ npm start
 npm run build
 ```
 
+## ⚙️ Configuración de Variables de Entorno
+
+### Variables Principales
+```bash
+# Base de datos
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=tfg_database
+
+# Seguridad
+SECRET_KEY=your-secret-key-here
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+# Servicios
+DEBUG=false
+LOG_LEVEL=INFO
+
+# APIs
+GEMINI_API_KEY=your-gemini-api-key-here
+
+# Notificaciones
+VAPID_PRIVATE_KEY=your-vapid-private-key-here
+VAPID_PUBLIC_KEY=your-vapid-public-key-here
+VAPID_EMAIL=noreply@mercat.com
+
+# Detección de Duplicados
+ENABLE_DUPLICATE_DETECTION=true
+```
+
+### Configuración de Detección de Duplicados
+El sistema incluye una funcionalidad para detectar tickets duplicados basada en fecha, hora y productos. Esta funcionalidad se puede controlar mediante la variable `ENABLE_DUPLICATE_DETECTION`:
+
+- **`true`** (por defecto): Habilita la detección de duplicados
+- **`false`**: Deshabilita la detección de duplicados
+
+**Endpoints de configuración:**
+- `GET /config/duplicate-detection` - Ver configuración actual
+- `POST /config/duplicate-detection` - Cambiar configuración (solo en modo DEBUG)
+
 ## 🐛 Solución de Problemas
 
 ### Servicios no inician
@@ -321,6 +394,69 @@ TFG/
 - Validación de datos con Pydantic
 - Variables de entorno para secretos
 - CORS configurado correctamente
+
+## 🌐 Despliegue en Servicios de Hosting
+
+### 🚀 Despliegue Automatizado
+
+Para desplegar en un servidor de hosting, usa el script automatizado:
+
+```bash
+# En el servidor Linux
+./deploy-hosting.sh tu-dominio.com
+```
+
+### 📋 Requisitos del Servidor
+
+- **CPU:** 2 cores mínimo
+- **RAM:** 4GB mínimo, 8GB recomendado
+- **Almacenamiento:** 20GB mínimo
+- **Sistema Operativo:** Ubuntu 20.04+ o similar
+- **Docker:** Versión 20.10+
+- **Docker Compose:** Versión 2.0+
+
+### 🔧 Configuración Manual
+
+Si prefieres configurar manualmente, sigue la guía completa en [`deploy-hosting.md`](deploy-hosting.md).
+
+### 📝 Pasos Básicos
+
+1. **Subir código al servidor:**
+   ```bash
+   git clone TU_REPOSITORIO
+   cd TFG
+   ```
+
+2. **Configurar variables de entorno:**
+   ```bash
+   cp .env.example .env
+   nano .env
+   ```
+
+3. **Ejecutar despliegue:**
+   ```bash
+   docker-compose build --no-cache
+   docker-compose up -d
+   ```
+
+4. **Configurar Nginx (recomendado):**
+   ```bash
+   sudo apt install nginx -y
+   # Ver deploy-hosting.md para configuración completa
+   ```
+
+### 🔑 Puertos Necesarios
+
+- **80/443:** Frontend (HTTP/HTTPS)
+- **8000:** Backend API
+- **8001:** Auth Service
+- **8003:** Ticket Service
+- **8004:** AI Ticket Processor
+- **8005:** Gamification Service
+- **8006:** CRM Service
+- **8007:** Notification Service
+- **5432:** PostgreSQL
+- **11434:** Ollama (IA)
 
 ## 📄 Licencia
 

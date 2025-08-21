@@ -1,10 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import axios from 'axios';
 
-// Crear instancia específica para auth-service
-const authApi = axios.create({
-  baseURL: 'http://localhost:8001'
-});
+  // Crear instancia específica para auth-service
+  const authApi = axios.create({
+    baseURL: 'http://localhost:8001'
+  });
 
 // Interceptor para manejar errores de autenticación
 authApi.interceptors.response.use(
@@ -23,7 +23,7 @@ interface User {
   id: string;
   email: string;
   username?: string;
-  role?: 'user' | 'vendor' | 'admin';
+  role: 'user' | 'vendor' | 'admin';
   preferences?: Record<string, any>;
 }
 
