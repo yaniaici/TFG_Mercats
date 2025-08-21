@@ -90,7 +90,7 @@ dist
 
 # Gatsby files
 .cache/
-public
+# public  <- Comentado para permitir que el directorio public se incluya en el repositorio
 
 # Storybook build outputs
 .out
