@@ -109,13 +109,50 @@ ON CONFLICT (role_id, permission_id) DO NOTHING;
 
 -- Crear usuario administrador por defecto (password: admin123)
 -- Nota: En producción, cambiar la contraseña inmediatamente
-INSERT INTO users (username, email, email_hash, password_hash, first_name, last_name, is_admin, is_active, role) VALUES
-    ('admin', 'admin@tfg.com', 'admin@tfg.com', crypt('admin123', gen_salt('bf')), 'Administrador', 'Sistema', TRUE, TRUE, 'admin')
-ON CONFLICT (username) DO NOTHING;
+INSERT INTO users (email, email_hash, password_hash, first_name, last_name, is_admin, is_active, role) VALUES
+    ('admin@tfg.com', 'admin@tfg.com', crypt('admin123', gen_salt('bf')), 'Administrador', 'Sistema', TRUE, TRUE, 'admin')
+ON CONFLICT (email) DO NOTHING;
 
 -- Asignar rol admin al usuario administrador
 INSERT INTO user_roles (user_id, role_id)
 SELECT u.id, r.id
 FROM users u, roles r
-WHERE u.username = 'admin' AND r.name = 'admin'
+WHERE u.email = 'admin@tfg.com' AND r.name = 'admin'
 ON CONFLICT (user_id, role_id) DO NOTHING;
+
+-- Insertar recompensas de ejemplo en catalán
+INSERT INTO rewards (name, description, points_cost, reward_type, reward_value, is_active, max_redemptions) VALUES
+    -- Recompensas de parking
+    ('Estacionament Gratuït 1 Hora', 'Estacionament gratuït durant 1 hora al centre comercial', 100, 'parking', '1 hora', TRUE, 50),
+    ('Estacionament Gratuït 2 Hores', 'Estacionament gratuït durant 2 hores al centre comercial', 200, 'parking', '2 hores', TRUE, 30),
+    ('Estacionament Gratuït 4 Hores', 'Estacionament gratuït durant 4 hores al centre comercial', 350, 'parking', '4 hores', TRUE, 20),
+    
+    -- Recompensas de descuentos
+    ('Descompte 5% en Moda', 'Descompte del 5% en totes les botigues de moda', 150, 'discount', '5% moda', TRUE, 100),
+    ('Descompte 10% en Restaurants', 'Descompte del 10% en tots els restaurants del centre', 250, 'discount', '10% restaurants', TRUE, 75),
+    ('Descompte 15% en Electrònica', 'Descompte del 15% en botigues d''electrònica', 400, 'discount', '15% electrònica', TRUE, 25),
+    ('Descompte 20% en Llibres', 'Descompte del 20% en la llibreria del centre', 300, 'discount', '20% llibres', TRUE, 50),
+    
+    -- Recompensas de comida
+    ('Cafè Gratuït', 'Un cafè gratuït en qualsevol cafeteria del centre', 50, 'food', '1 cafè', TRUE, 200),
+    ('Entrepà Gratuït', 'Un entrepà gratuït en qualsevol restaurant del centre', 120, 'food', '1 entrepà', TRUE, 150),
+    ('Gelat Gratuït', 'Un gelat gratuït en la gelateria del centre', 80, 'food', '1 gelat', TRUE, 100),
+    ('Pizza Gratuïta', 'Una pizza gratuïta en el restaurant italià', 200, 'food', '1 pizza', TRUE, 80),
+    
+    -- Recompensas de merchandising
+    ('Tassa del Centre', 'Una tassa commemorativa del centre comercial', 75, 'merchandise', '1 tassa', TRUE, 100),
+    ('Bolsa Reutilitzable', 'Una bolsa reutilitzable del centre comercial', 60, 'merchandise', '1 bolsa', TRUE, 150),
+    ('Llibreta Personalitzada', 'Una llibreta personalitzada del centre', 90, 'merchandise', '1 llibreta', TRUE, 80),
+    ('Pulsera del Centre', 'Una pulsera commemorativa del centre comercial', 45, 'merchandise', '1 pulsera', TRUE, 200),
+    
+    -- Recompensas de experiencias
+    ('Sessió de Cinema', 'Una entrada gratuïta per al cinema del centre', 300, 'experience', '1 entrada cinema', TRUE, 60),
+    ('Classe de Cuina', 'Una classe de cuina gratuïta en el centre', 500, 'experience', '1 classe cuina', TRUE, 20),
+    ('Massatge 15 Minuts', 'Un massatge de 15 minuts gratuït', 400, 'experience', '15 min massatge', TRUE, 30),
+    ('Visita Guiada', 'Una visita guiada gratuïta del centre comercial', 150, 'experience', '1 visita guiada', TRUE, 40),
+    
+    -- Recompensas especiales
+    ('Descompte 25% Black Friday', 'Descompte especial del 25% durant el Black Friday', 600, 'discount', '25% Black Friday', TRUE, 10),
+    ('Pack Familiar', 'Pack familiar amb múltiples recompenses', 800, 'experience', 'Pack familiar', TRUE, 15),
+    ('VIP Shopping Day', 'Dia VIP amb descomptes exclusius', 1000, 'experience', 'Dia VIP', TRUE, 5)
+ON CONFLICT (name) DO NOTHING;

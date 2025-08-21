@@ -4,7 +4,6 @@
 -- Tabla de usuarios (compatible con todos los servicios)
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    username VARCHAR(50) UNIQUE,
     email VARCHAR(255) UNIQUE,
     email_hash VARCHAR(255) UNIQUE,
     password_hash VARCHAR(255),
@@ -133,7 +132,6 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 -- Índices para mejorar el rendimiento
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_email_hash ON users(email_hash);
-CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 CREATE INDEX IF NOT EXISTS idx_users_registration_date ON users(registration_date);
 CREATE INDEX IF NOT EXISTS idx_users_is_active ON users(is_active);
 CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);

@@ -18,8 +18,9 @@ END $$;
 -- 08_create_rewards_tables.sql - Tablas de recompensas (rewards, redemptions)
 -- 10_create_crm.sql - Tablas de CRM (segments, campaigns, notifications)
 -- 11_create_notification_sender_tables.sql - Tablas de notificaciones (user_subscriptions)
--- 12_insert_initial_data.sql - Datos iniciales (roles, permissions, admin user)
+-- 12_insert_initial_data.sql - Datos iniciales (roles, permissions, admin user, recompensas)
 -- 13_create_additional_tables.sql - Tablas adicionales (market_stores, ticket_files)
+-- 14_verify_tables.sql - Verificación de tablas creadas
 
 -- Mensaje de finalización
 DO $$
