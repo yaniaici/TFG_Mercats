@@ -3,7 +3,19 @@ const BASE_URL = process.env.REACT_APP_ENVIRONMENT === 'production'
   ? 'http://mercatmediterrani.com' 
   : 'http://localhost';
 
-export const API_CONFIG = {
+// Definir el tipo para la configuración
+interface ApiConfig {
+  AUTH_SERVICE_URL: string;
+  BACKEND_URL: string;
+  TICKET_SERVICE_URL: string;
+  GAMIFICATION_SERVICE_URL: string;
+  CRM_SERVICE_URL: string;
+  NOTIFICATION_SERVICE_URL: string;
+  ENVIRONMENT: string;
+  getUrl: (service: keyof Omit<ApiConfig, 'getUrl' | 'ENVIRONMENT'>, endpoint?: string) => string;
+}
+
+export const API_CONFIG: ApiConfig = {
   // URLs base según el entorno
   AUTH_SERVICE_URL: `${BASE_URL}:8001`,
   BACKEND_URL: `${BASE_URL}:8000`,
@@ -16,7 +28,7 @@ export const API_CONFIG = {
   ENVIRONMENT: process.env.REACT_APP_ENVIRONMENT || 'development',
   
   // Función helper para obtener URL completa
-  getUrl: (service: keyof typeof API_CONFIG, endpoint: string = '') => {
+  getUrl: (service, endpoint = '') => {
     const baseUrl = API_CONFIG[service];
     return endpoint ? `${baseUrl}${endpoint}` : baseUrl;
   }
