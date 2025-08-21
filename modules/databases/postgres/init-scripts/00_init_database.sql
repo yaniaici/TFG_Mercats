@@ -21,6 +21,7 @@ END $$;
 -- 12_insert_initial_data.sql - Datos iniciales (roles, permissions, admin user, recompensas)
 -- 13_create_additional_tables.sql - Tablas adicionales (market_stores, ticket_files)
 -- 14_verify_tables.sql - Verificación de tablas creadas
+-- 16_verify_rewards.sql - Verificación específica de recompensas
 
 -- Mensaje de finalización
 DO $$

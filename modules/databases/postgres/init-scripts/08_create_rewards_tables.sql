@@ -3,7 +3,7 @@
 
 -- Tabla de recompensas disponibles
 CREATE TABLE IF NOT EXISTS rewards (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) NOT NULL,
     description VARCHAR(500) NOT NULL,
     points_cost INTEGER NOT NULL,
@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS rewards (
 
 -- Tabla de canjes de recompensas
 CREATE TABLE IF NOT EXISTS reward_redemptions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL,
     reward_id UUID NOT NULL REFERENCES rewards(id),
     points_spent INTEGER NOT NULL,
