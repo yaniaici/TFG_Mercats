@@ -1,9 +1,10 @@
 FROM postgres:15-alpine
 
 # Variables de entorno para la base de datos
-ENV POSTGRES_DB=ticket_analytics
-ENV POSTGRES_USER=ticket_user
-ENV POSTGRES_PASSWORD=ticket_password
+# Estas variables se sobrescriben desde docker-compose.yml
+ENV POSTGRES_DB=tfg_db
+ENV POSTGRES_USER=postgres
+ENV POSTGRES_PASSWORD=postgres
 
 # Copiar scripts de inicialización
 COPY init-scripts/ /docker-entrypoint-initdb.d/
