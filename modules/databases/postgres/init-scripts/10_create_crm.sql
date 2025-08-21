@@ -50,28 +50,20 @@ CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_campaign_id ON notifications(campaign_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_status ON notifications(status);
 
--- Trigger para mantener updated_at
-CREATE OR REPLACE FUNCTION update_crm_updated_at()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
+-- Triggers para mantener updated_at (usando la función ya definida)
 CREATE TRIGGER trg_update_segments_updated_at
     BEFORE UPDATE ON segments
     FOR EACH ROW
-    EXECUTE FUNCTION update_crm_updated_at();
+    EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER trg_update_campaigns_updated_at
     BEFORE UPDATE ON campaigns
     FOR EACH ROW
-    EXECUTE FUNCTION update_crm_updated_at();
+    EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER trg_update_notifications_updated_at
     BEFORE UPDATE ON notifications
     FOR EACH ROW
-    EXECUTE FUNCTION update_crm_updated_at();
+    EXECUTE FUNCTION update_updated_at_column();
 
 

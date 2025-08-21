@@ -35,16 +35,8 @@ COMMENT ON COLUMN purchase_history.num_products IS 'Número total de productos';
 COMMENT ON COLUMN purchase_history.ticket_type IS 'Tipo de ticket (compra, devolución, etc.)';
 COMMENT ON COLUMN purchase_history.is_market_store IS 'Indica si la tienda es del mercado';
 
--- Crear trigger para actualizar updated_at automáticamente
-CREATE OR REPLACE FUNCTION update_purchase_history_updated_at()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
+-- Trigger para actualizar updated_at automáticamente (usando la función ya definida)
 CREATE TRIGGER trigger_update_purchase_history_updated_at
     BEFORE UPDATE ON purchase_history
     FOR EACH ROW
-    EXECUTE FUNCTION update_purchase_history_updated_at(); 
+    EXECUTE FUNCTION update_updated_at_column(); 

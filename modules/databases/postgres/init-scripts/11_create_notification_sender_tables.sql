@@ -26,19 +26,11 @@ COMMENT ON COLUMN user_subscriptions.channel IS 'Canal de notificación (webpush
 COMMENT ON COLUMN user_subscriptions.subscription_data IS 'Datos específicos del canal (endpoint, keys, tokens, etc.)';
 COMMENT ON COLUMN user_subscriptions.is_active IS 'Indica si la suscripción está activa';
 
--- Trigger para actualizar updated_at
-CREATE OR REPLACE FUNCTION update_user_subscriptions_updated_at()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
+-- Trigger para actualizar updated_at (usando la función ya definida)
 CREATE TRIGGER trigger_update_user_subscriptions_updated_at
     BEFORE UPDATE ON user_subscriptions
     FOR EACH ROW
-    EXECUTE FUNCTION update_user_subscriptions_updated_at();
+    EXECUTE FUNCTION update_updated_at_column();
 
 -- Función para limpiar suscripciones inactivas (opcional)
 CREATE OR REPLACE FUNCTION cleanup_inactive_subscriptions()

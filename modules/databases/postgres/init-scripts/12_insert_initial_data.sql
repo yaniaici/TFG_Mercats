@@ -109,8 +109,8 @@ ON CONFLICT (role_id, permission_id) DO NOTHING;
 
 -- Crear usuario administrador por defecto (password: admin123)
 -- Nota: En producción, cambiar la contraseña inmediatamente
-INSERT INTO users (username, email, password_hash, first_name, last_name, is_admin, is_active) VALUES
-    ('admin', 'admin@tfg.com', crypt('admin123', gen_salt('bf')), 'Administrador', 'Sistema', TRUE, TRUE)
+INSERT INTO users (username, email, email_hash, password_hash, first_name, last_name, is_admin, is_active, role) VALUES
+    ('admin', 'admin@tfg.com', 'admin@tfg.com', crypt('admin123', gen_salt('bf')), 'Administrador', 'Sistema', TRUE, TRUE, 'admin')
 ON CONFLICT (username) DO NOTHING;
 
 -- Asignar rol admin al usuario administrador

@@ -19,7 +19,11 @@ BEGIN
         VALUES (TG_TABLE_NAME, NEW.id, 'INSERT', to_jsonb(NEW), 
                 CASE 
                     WHEN TG_TABLE_NAME = 'users' THEN NEW.id
-                    ELSE NEW.user_id
+                    WHEN TG_TABLE_NAME = 'user_profiles' THEN NEW.user_id
+                    WHEN TG_TABLE_NAME = 'tickets' THEN NEW.user_id
+                    WHEN TG_TABLE_NAME = 'ticket_images' THEN 
+                        (SELECT user_id FROM tickets WHERE id = NEW.ticket_id)
+                    ELSE NULL
                 END);
         RETURN NEW;
     ELSIF TG_OP = 'UPDATE' THEN
@@ -27,7 +31,11 @@ BEGIN
         VALUES (TG_TABLE_NAME, NEW.id, 'UPDATE', to_jsonb(OLD), to_jsonb(NEW), 
                 CASE 
                     WHEN TG_TABLE_NAME = 'users' THEN NEW.id
-                    ELSE NEW.user_id
+                    WHEN TG_TABLE_NAME = 'user_profiles' THEN NEW.user_id
+                    WHEN TG_TABLE_NAME = 'tickets' THEN NEW.user_id
+                    WHEN TG_TABLE_NAME = 'ticket_images' THEN 
+                        (SELECT user_id FROM tickets WHERE id = NEW.ticket_id)
+                    ELSE NULL
                 END);
         RETURN NEW;
     ELSIF TG_OP = 'DELETE' THEN
@@ -35,7 +43,11 @@ BEGIN
         VALUES (TG_TABLE_NAME, OLD.id, 'DELETE', to_jsonb(OLD), 
                 CASE 
                     WHEN TG_TABLE_NAME = 'users' THEN OLD.id
-                    ELSE OLD.user_id
+                    WHEN TG_TABLE_NAME = 'user_profiles' THEN OLD.user_id
+                    WHEN TG_TABLE_NAME = 'tickets' THEN OLD.user_id
+                    WHEN TG_TABLE_NAME = 'ticket_images' THEN 
+                        (SELECT user_id FROM tickets WHERE id = OLD.ticket_id)
+                    ELSE NULL
                 END);
         RETURN OLD;
     END IF;
@@ -66,16 +78,27 @@ CREATE TRIGGER update_user_profiles_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
+CREATE TRIGGER update_vendors_updated_at
+    BEFORE UPDATE ON vendors
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_stores_updated_at
+    BEFORE UPDATE ON stores
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
 CREATE TRIGGER update_tickets_updated_at
     BEFORE UPDATE ON tickets
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
--- Triggers para auditoría
-CREATE TRIGGER audit_users_trigger
-    AFTER INSERT OR UPDATE OR DELETE ON users
-    FOR EACH ROW
-    EXECUTE FUNCTION audit_trigger_function();
+-- Triggers para auditoría (solo en tablas principales)
+-- Comentado temporalmente para evitar errores durante la inicialización
+-- CREATE TRIGGER audit_users_trigger
+--     AFTER INSERT OR UPDATE OR DELETE ON users
+--     FOR EACH ROW
+--     EXECUTE FUNCTION audit_trigger_function();
 
 CREATE TRIGGER audit_user_profiles_trigger
     AFTER INSERT OR UPDATE OR DELETE ON user_profiles

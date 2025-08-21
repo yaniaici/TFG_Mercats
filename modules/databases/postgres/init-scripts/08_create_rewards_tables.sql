@@ -38,15 +38,7 @@ CREATE INDEX IF NOT EXISTS idx_reward_redemptions_reward_id ON reward_redemption
 CREATE INDEX IF NOT EXISTS idx_reward_redemptions_code ON reward_redemptions(redemption_code);
 CREATE INDEX IF NOT EXISTS idx_reward_redemptions_used ON reward_redemptions(is_used);
 
--- Trigger para actualizar updated_at automáticamente
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
-
+-- Triggers para actualizar updated_at (usando la función ya definida en 04_create_triggers.sql)
 CREATE TRIGGER update_rewards_updated_at 
     BEFORE UPDATE ON rewards 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

@@ -44,19 +44,11 @@ CREATE INDEX IF NOT EXISTS idx_user_badges_type ON user_badges(badge_type);
 CREATE INDEX IF NOT EXISTS idx_experience_log_user_id ON experience_log(user_id);
 CREATE INDEX IF NOT EXISTS idx_experience_log_created_at ON experience_log(created_at);
 
--- Crear trigger para actualizar updated_at en user_gamification
-CREATE OR REPLACE FUNCTION update_user_gamification_updated_at()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
+-- Trigger para actualizar updated_at en user_gamification (usando la función ya definida)
 CREATE TRIGGER trigger_update_user_gamification_updated_at
     BEFORE UPDATE ON user_gamification
     FOR EACH ROW
-    EXECUTE FUNCTION update_user_gamification_updated_at();
+    EXECUTE FUNCTION update_updated_at_column();
 
 -- Insertar comentarios en las tablas
 COMMENT ON TABLE user_gamification IS 'Perfil de gamificación de cada usuario';
