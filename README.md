@@ -5,7 +5,7 @@ Sistema completo de gestión de tickets digitales para mercados, con gamificaci�
 ## 🚀 Características Principales
 
 ### 📱 **Frontend (React + TypeScript)**
-- **Interfaz completamente en catalán** 🇨🇦
+- **Interfaz completamente en catalán** 
 - Diseño responsive y moderno
 - Sistema de autenticación JWT
 - Escáner de tickets con cámara
