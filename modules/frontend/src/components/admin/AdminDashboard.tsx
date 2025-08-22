@@ -23,6 +23,10 @@ import {
 import { CheckCircle, Loader2, ShieldCheck } from 'lucide-react';
 
 const AdminDashboard: React.FC = () => {
+  // Helper function to safely render arrays
+  const safeArrayMap = (arr: any, renderFn: (item: any, index: number) => React.ReactNode) => {
+    return Array.isArray(arr) ? arr.map(renderFn) : [];
+  };
   const { token } = useAuth();
   const [overview, setOverview] = useState<any>(null);
   const [users, setUsers] = useState<any[]>([]);
@@ -202,7 +206,7 @@ const AdminDashboard: React.FC = () => {
 
         <Section title="Usuaris (no venedors ni admins)">
           <div className="space-y-2">
-            {(users || []).filter(u => u.role === 'user').map(u => (
+            {safeArrayMap(users?.filter(u => u.role === 'user') || [], u => (
               <div key={u.id} className="flex items-center justify-between bg-white p-3 rounded border">
                 <div>
                   <div className="font-medium">{u.email}</div>
@@ -239,14 +243,14 @@ const AdminDashboard: React.FC = () => {
 
         <Section title="Venedors">
           <div className="space-y-2">
-            {(vendors || []).filter(v => v.role === 'vendor').map(v => (
+            {Array.isArray(vendors) ? vendors.filter(v => v.role === 'vendor').map(v => (
               <div key={v.id} className="flex items-center justify-between bg-white p-3 rounded border">
                 <div>
                   <div className="font-medium">{v.email}</div>
                   <div className="text-sm text-gray-500">{v.role}</div>
                 </div>
               </div>
-            ))}
+            )) : null}
           </div>
         </Section>
 
