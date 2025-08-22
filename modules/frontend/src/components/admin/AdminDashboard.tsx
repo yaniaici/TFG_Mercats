@@ -66,8 +66,10 @@ const AdminDashboard: React.FC = () => {
         setLoadingOverview(false);
       }
       const us = await listUsers(20, 0);
+      console.log('Users data:', us, 'Type:', typeof us, 'Is Array:', Array.isArray(us));
       setUsers(us);
       const vs = await listVendors(20, 0);
+      console.log('Vendors data:', vs, 'Type:', typeof vs, 'Is Array:', Array.isArray(vs));
       setVendors(vs);
       setSegments(await listSegments());
       setCampaigns(await listCampaigns());
@@ -203,10 +205,9 @@ const AdminDashboard: React.FC = () => {
         {loadingOverview && (
           <div className="flex items-center gap-2 text-gray-600"><Loader2 className="h-4 w-4 animate-spin" /> Carregant resum...</div>
         )}
-
         <Section title="Usuaris (no venedors ni admins)">
           <div className="space-y-2">
-            {safeArrayMap(users?.filter(u => u.role === 'user') || [], u => (
+            {safeArrayMap(Array.isArray(users) ? users.filter(u => u.role === 'user') : [], u => (
               <div key={u.id} className="flex items-center justify-between bg-white p-3 rounded border">
                 <div>
                   <div className="font-medium">{u.email}</div>
