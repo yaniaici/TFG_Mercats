@@ -10,7 +10,9 @@ import {
   CheckCircle,
   AlertCircle,
   ArrowLeft,
-  RotateCcw
+  RotateCcw,
+  Loader,
+  Receipt
 } from 'lucide-react';
 
 // Crear instancia específica para ticket-service usando configuración centralizada
