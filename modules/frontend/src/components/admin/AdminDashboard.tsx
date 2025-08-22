@@ -82,7 +82,7 @@ const AdminDashboard: React.FC = () => {
   const handlePromoteVendor = async (id: string) => {
     setPromoteLoadingByUserId(prev => ({ ...prev, [id]: 'vendor' }));
     // Optimisme: canviar rol a la llista d'usuaris i afegir a venedors visualment
-    const targetUser = users?.find(u => u.id === id);
+    const targetUser = (users || []).find(u => u.id === id);
     if (targetUser) {
       setUsers(prev => prev?.map(u => (u.id === id ? { ...u, role: 'vendor' } : u)) || []);
       setVendors(prev => (prev?.some(v => v.id === id) ? prev : [...(prev || []), { ...targetUser, role: 'vendor' }]));
@@ -202,7 +202,7 @@ const AdminDashboard: React.FC = () => {
 
         <Section title="Usuaris (no venedors ni admins)">
           <div className="space-y-2">
-            {users?.filter(u => u.role === 'user').map(u => (
+            {(users || []).filter(u => u.role === 'user').map(u => (
               <div key={u.id} className="flex items-center justify-between bg-white p-3 rounded border">
                 <div>
                   <div className="font-medium">{u.email}</div>
@@ -239,7 +239,7 @@ const AdminDashboard: React.FC = () => {
 
         <Section title="Venedors">
           <div className="space-y-2">
-            {vendors?.filter(v => v.role === 'vendor').map(v => (
+            {(vendors || []).filter(v => v.role === 'vendor').map(v => (
               <div key={v.id} className="flex items-center justify-between bg-white p-3 rounded border">
                 <div>
                   <div className="font-medium">{v.email}</div>
@@ -252,7 +252,7 @@ const AdminDashboard: React.FC = () => {
 
         <Section title="Tots els usuaris (amb rols)">
           <div className="space-y-2">
-            {users?.map(u => (
+            {(users || []).map(u => (
               <div key={u.id} className="flex items-center justify-between bg-white p-3 rounded border">
                 <div>
                   <div className="font-medium">{u.email}</div>
@@ -285,7 +285,7 @@ const AdminDashboard: React.FC = () => {
 
         <Section title="CRM: Segments">
           <div className="space-y-2">
-            {segments?.map(s => (
+            {(segments || []).map(s => (
               <div key={s.id} className="bg-white p-3 rounded border">
                 <div className="flex items-center justify-between">
                   <div className="font-medium">{s.name}</div>
@@ -318,7 +318,7 @@ const AdminDashboard: React.FC = () => {
             <div>
               <div className="font-medium mb-2">Selecciona segments</div>
               <div className="grid md:grid-cols-3 gap-2">
-                {segments.map(s => (
+                                 {(segments || []).map(s => (
                   <label key={s.id} className="flex items-center gap-2 bg-gray-50 border rounded p-2">
                     <input
                       type="checkbox"
@@ -342,7 +342,7 @@ const AdminDashboard: React.FC = () => {
 
         <Section title="CRM: Campanyes">
           <div className="space-y-2">
-            {campaigns?.map(c => (
+            {(campaigns || []).map(c => (
               <div key={c.id} className="bg-white p-3 rounded border">
                 <div className="flex items-center justify-between">
                   <div className="font-medium">{c.name}</div>
@@ -368,7 +368,7 @@ const AdminDashboard: React.FC = () => {
 
         <Section title="CRM: Notificacions (en cua)">
           <ul className="list-disc pl-5">
-            {notifications?.map((n: any) => (
+            {(notifications || []).map((n: any) => (
               <li key={n.id}>{n.message}</li>
             ))}
           </ul>
