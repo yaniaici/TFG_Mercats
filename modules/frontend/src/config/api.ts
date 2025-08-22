@@ -1,6 +1,6 @@
 // Configuración centralizada de URLs de la API
 const BASE_URL = process.env.REACT_APP_ENVIRONMENT === 'production' 
-  ? 'http://mercatmediterrani.com' 
+  ? 'https://mercatmediterrani.com' 
   : 'http://localhost';
 
 // Definir el tipo para la configuración
