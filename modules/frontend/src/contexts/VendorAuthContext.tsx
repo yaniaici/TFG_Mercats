@@ -1,12 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import axios from 'axios';
+import { API_CONFIG } from '../config/api';
 
-  // API del auth-service
-  const authApi = axios.create({
-    baseURL: process.env.REACT_APP_ENVIRONMENT === 'production' 
-      ? 'https://mercatmediterrani.com' 
-      : 'http://localhost:8001'
-  });
+// API del auth-service
+const authApi = axios.create({
+  baseURL: API_CONFIG.AUTH_SERVICE_URL
+});
 
 authApi.interceptors.response.use(
   (response) => response,

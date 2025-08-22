@@ -1,12 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import axios from 'axios';
+import { API_CONFIG } from '../config/api';
 
-  // Crear instancia específica para auth-service
-  const authApi = axios.create({
-    baseURL: process.env.REACT_APP_ENVIRONMENT === 'production' 
-      ? 'https://mercatmediterrani.com' 
-      : 'http://localhost:8001'
-  });
+// Crear instancia específica para auth-service
+const authApi = axios.create({
+  baseURL: API_CONFIG.AUTH_SERVICE_URL
+});
 
 // Interceptor para manejar errores de autenticación
 authApi.interceptors.response.use(

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Receipt, Calendar, Clock, CheckCircle, XCircle, AlertCircle, Store, Euro, Package, Leaf, Eye } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { API_CONFIG } from '../../config/api';
 import TicketDetails from '../tickets/TicketDetails';
 
 interface Ticket {
@@ -33,7 +34,7 @@ const TicketFeed: React.FC = () => {
       setLoading(true);
       setError(null);
       
-              const response = await fetch(`${process.env.REACT_APP_ENVIRONMENT === 'production' ? 'https://mercatmediterrani.com' : 'http://localhost:8003'}/tickets/?user_id=${user?.id}`);
+      const response = await fetch(`${API_CONFIG.TICKET_SERVICE_URL}/tickets/?user_id=${user?.id}`);
       
       if (!response.ok) {
         throw new Error('Error al obtenir tiquets');

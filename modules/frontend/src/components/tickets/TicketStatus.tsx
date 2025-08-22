@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import { API_CONFIG } from '../../config/api';
 import axios from 'axios';
 import { 
   Receipt, 
@@ -9,7 +11,6 @@ import {
   Filter,
   RefreshCw
 } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
 import TicketDetails from './TicketDetails';
 
 interface Ticket {
@@ -39,7 +40,7 @@ const TicketStatus: React.FC = () => {
       setLoading(true);
       setError(null);
       
-              const response = await axios.get(`${process.env.REACT_APP_ENVIRONMENT === 'production' ? 'https://mercatmediterrani.com' : 'http://localhost:8003'}/tickets/all/?user_id=${user.id}`);
+              const response = await axios.get(`${API_CONFIG.TICKET_SERVICE_URL}/tickets/all/?user_id=${user.id}`);
       setTickets(response.data);
     } catch (err: any) {
       console.error('Error obteniendo tickets:', err);

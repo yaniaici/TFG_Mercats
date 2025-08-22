@@ -14,6 +14,7 @@ import {
   Download
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { API_CONFIG } from '../../config/api';
 import TicketDetails from './TicketDetails';
 
 interface Ticket {
@@ -50,8 +51,8 @@ const TicketHistory: React.FC = () => {
       setError(null);
       
       const url = statusFilter === 'all' 
-        ? `${process.env.REACT_APP_ENVIRONMENT === 'production' ? 'https://mercatmediterrani.com' : 'http://localhost:8003'}/tickets/history/${user?.id}`
-        : `${process.env.REACT_APP_ENVIRONMENT === 'production' ? 'https://mercatmediterrani.com' : 'http://localhost:8003'}/tickets/history/${user?.id}?status=${statusFilter}`;
+        ? `${API_CONFIG.TICKET_SERVICE_URL}/tickets/history/${user?.id}`
+        : `${API_CONFIG.TICKET_SERVICE_URL}/tickets/history/${user?.id}?status=${statusFilter}`;
       
       const response = await fetch(url);
       

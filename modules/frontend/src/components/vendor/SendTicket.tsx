@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { API_CONFIG } from '../../config/api';
 import axios from 'axios';
 import { 
   ArrowLeft,
@@ -72,7 +73,7 @@ const SendTicket: React.FC = () => {
         setError(null);
         
         // Obtener información del usuario desde el auth service
-        const response = await axios.get(`${process.env.REACT_APP_ENVIRONMENT === 'production' ? 'https://mercatmediterrani.com' : 'http://localhost:8001'}/users/${userId}/public-info`);
+        const response = await axios.get(`${API_CONFIG.AUTH_SERVICE_URL}/users/${userId}/public-info`);
         setUserInfo(response.data);
         
       } catch (err: any) {
@@ -135,7 +136,7 @@ const SendTicket: React.FC = () => {
         purchase_date: ticketData.purchase_date
       };
 
-              const response = await axios.post(`${process.env.REACT_APP_ENVIRONMENT === 'production' ? 'https://mercatmediterrani.com' : 'http://localhost:8003'}/tickets/digital/`, ticketPayload);
+              const response = await axios.post(`${API_CONFIG.TICKET_SERVICE_URL}/tickets/digital/`, ticketPayload);
       
       console.log('Tiquet digital enviat:', response.data);
 
