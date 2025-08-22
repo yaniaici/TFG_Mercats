@@ -4,7 +4,7 @@ import axios from 'axios';
   // Crear instancia específica para auth-service
   const authApi = axios.create({
     baseURL: process.env.REACT_APP_ENVIRONMENT === 'production' 
-      ? 'http://mercatmediterrani.com:8001' 
+      ? 'https://mercatmediterrani.com:8001' 
       : 'http://localhost:8001'
   });
 

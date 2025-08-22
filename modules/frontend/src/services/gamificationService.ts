@@ -1,5 +1,5 @@
 const GAMIFICATION_API_URL = process.env.REACT_APP_ENVIRONMENT === 'production' 
-  ? 'http://mercatmediterrani.com:8005' 
+  ? 'https://mercatmediterrani.com:8005' 
   : 'http://localhost:8005';
 
 export interface GamificationStats {

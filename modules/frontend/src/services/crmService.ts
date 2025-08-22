@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const crmApi = axios.create({ 
   baseURL: process.env.REACT_APP_ENVIRONMENT === 'production' 
-    ? 'http://mercatmediterrani.com:8006' 
+    ? 'https://mercatmediterrani.com:8006' 
     : 'http://localhost:8006'
 });
 

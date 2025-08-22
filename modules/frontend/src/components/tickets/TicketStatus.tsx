@@ -39,7 +39,7 @@ const TicketStatus: React.FC = () => {
       setLoading(true);
       setError(null);
       
-              const response = await axios.get(`${process.env.REACT_APP_ENVIRONMENT === 'production' ? 'http://mercatmediterrani.com:8003' : 'http://localhost:8003'}/tickets/all/?user_id=${user.id}`);
+              const response = await axios.get(`${process.env.REACT_APP_ENVIRONMENT === 'production' ? 'https://mercatmediterrani.com:8003' : 'http://localhost:8003'}/tickets/all/?user_id=${user.id}`);
       setTickets(response.data);
     } catch (err: any) {
       console.error('Error obteniendo tickets:', err);
