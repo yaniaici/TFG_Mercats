@@ -193,7 +193,7 @@ const AdminDashboard: React.FC = () => {
             <StatCard label="Venedors" value={overview.total_vendors} />
             <StatCard label="Admins" value={overview.total_admins} />
             <StatCard label="Compres" value={overview.total_purchases} />
-            <StatCard label="€ gastat" value={overview.total_spent.toFixed(2)} />
+            <StatCard label="€ gastat" value={overview.total_spent ? overview.total_spent.toFixed(2) : '0.00'} />
           </div>
         )}
         {loadingOverview && (

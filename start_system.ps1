@@ -1,70 +1,44 @@
 # Script para levantar todo el sistema TFG
-Write-Host "🚀 LEVANTANDO SISTEMA TFG COMPLETO" -ForegroundColor Green
-Write-Host "===============================================" -ForegroundColor Green
+Write-Host "🚀 Iniciando sistema TFG..." -ForegroundColor Green
 
-# Detener contenedores existentes si los hay
-Write-Host "🛑 Deteniendo contenedores existentes..." -ForegroundColor Yellow
-docker-compose down
-
-# Limpiar volúmenes si es necesario (descomentar para reset completo)
-# Write-Host "🧹 Limpiando volúmenes..." -ForegroundColor Yellow
-# docker-compose down -v
-
-# Construir y levantar todos los servicios
-Write-Host "🔨 Construyendo y levantando servicios..." -ForegroundColor Yellow
-docker-compose up --build -d
-
-# Esperar a que los servicios estén listos
-Write-Host "⏳ Esperando a que los servicios estén listos..." -ForegroundColor Yellow
-Start-Sleep -Seconds 60
-
-# Mostrar estado de los contenedores
-Write-Host "📊 Estado de los contenedores:" -ForegroundColor Cyan
-docker-compose ps
-
-# Verificar health checks
-Write-Host "🏥 Verificando health checks..." -ForegroundColor Yellow
-Start-Sleep -Seconds 30
-
-# Mostrar logs de los servicios principales
-Write-Host "📋 Logs de los servicios principales:" -ForegroundColor Cyan
-Write-Host ""
-
-Write-Host "🔐 Auth Service:" -ForegroundColor Green
-docker-compose logs --tail=10 auth-service
-
-Write-Host "🎫 Ticket Service:" -ForegroundColor Green
-docker-compose logs --tail=10 ticket-service
-
-Write-Host "🤖 AI Ticket Processor:" -ForegroundColor Green
-docker-compose logs --tail=10 ai-ticket-processor
-
-Write-Host "🌐 Frontend:" -ForegroundColor Green
-docker-compose logs --tail=10 frontend
-
-# Mostrar URLs de acceso
-Write-Host ""
-Write-Host "🌐 URLs DE ACCESO:" -ForegroundColor Green
-Write-Host "===============================================" -ForegroundColor Green
-Write-Host "Frontend: http://localhost:3000" -ForegroundColor Cyan
-Write-Host "Auth Service: http://localhost:8001" -ForegroundColor Cyan
-Write-Host "Ticket Service: http://localhost:8003" -ForegroundColor Cyan
-Write-Host "AI Ticket Processor: http://localhost:8004" -ForegroundColor Cyan
-Write-Host "Backend: http://localhost:8000" -ForegroundColor Cyan
-Write-Host "PgAdmin: http://localhost:8080" -ForegroundColor Cyan
-Write-Host "  - Email: admin@ticketanalytics.com" -ForegroundColor White
-Write-Host "  - Password: admin123" -ForegroundColor White
-
-Write-Host ""
-Write-Host "✅ Sistema levantado correctamente!" -ForegroundColor Green
-Write-Host ""
-
-# Preguntar si quiere ejecutar el procesamiento de tickets
-$response = Read-Host "¿Quieres ejecutar el procesamiento de tickets pendientes? (s/n)"
-if ($response -eq "s" -or $response -eq "S") {
-    Write-Host "🎫 Ejecutando procesamiento de tickets..." -ForegroundColor Yellow
-    python process_tickets_after_startup.py
+# Verificar que Docker esté ejecutándose
+try {
+    docker version | Out-Null
+} catch {
+    Write-Host "❌ Docker no está ejecutándose. Por favor, inicia Docker Desktop." -ForegroundColor Red
+    exit 1
 }
 
+# Verificar que el archivo .env existe (opcional)
+if (-not (Test-Path ".env")) {
+    Write-Host "Advertencia: Archivo .env no encontrado. Asegúrate de tener las variables configuradas." -ForegroundColor Yellow
+}
+
+# Iniciar todos los servicios
+Write-Host "📦 Iniciando servicios..." -ForegroundColor Yellow
+docker-compose up -d
+
+# Esperar a que PostgreSQL esté listo
+Write-Host "⏳ Esperando a que PostgreSQL esté listo..." -ForegroundColor Yellow
+Start-Sleep -Seconds 10
+
+# Verificar estado de los servicios
+Write-Host "🔍 Verificando estado de los servicios..." -ForegroundColor Yellow
+docker-compose ps
+
 Write-Host ""
-Write-Host "🎉 ¡Sistema listo para usar!" -ForegroundColor Green 
+Write-Host "✅ Sistema iniciado!" -ForegroundColor Green
+Write-Host ""
+Write-Host "🌐 Servicios disponibles:" -ForegroundColor Cyan
+Write-Host "   Frontend: http://localhost:3000" -ForegroundColor White
+Write-Host "   Backend: http://localhost:8000" -ForegroundColor White
+Write-Host "   Auth Service: http://localhost:8001" -ForegroundColor White
+Write-Host "   Ticket Service: http://localhost:8003" -ForegroundColor White
+Write-Host "   Gamification Service: http://localhost:8005" -ForegroundColor White
+Write-Host "   CRM Service: http://localhost:8006" -ForegroundColor White
+Write-Host "   Notification Sender: http://localhost:8007" -ForegroundColor White
+Write-Host "   PgAdmin: http://localhost:8080" -ForegroundColor White
+Write-Host ""
+Write-Host "El CRM service funciona sin VAPID keys (notificaciones solo en BD)" -ForegroundColor Yellow
+Write-Host "Para ver logs: docker-compose logs -f [servicio]" -ForegroundColor Gray
+Write-Host "Para detener: docker-compose down" -ForegroundColor Gray 

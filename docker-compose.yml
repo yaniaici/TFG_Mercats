@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # ========================================
   # SERVICIOS BACKEND
@@ -166,8 +164,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      ollama:
-        condition: service_started
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8006/health"]
       interval: 30s
@@ -187,8 +183,8 @@ services:
       - PORT=8007
       - DEBUG=${DEBUG:-false}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY}
-      - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY}
+      - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY:-}
+      - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY:-}
       - VAPID_EMAIL=${VAPID_EMAIL:-noreply@mercat.com}
     ports:
       - "${NOTIFICATION_SENDER_PORT:-8007}:8007"

@@ -713,11 +713,13 @@ async def send_campaign_notifications(
                 )
                 
     except Exception as e:
-        logger.error("Error sending notifications", error=str(e))
-        raise HTTPException(
-            status_code=500, 
-            detail=f"Error enviando notificaciones: {str(e)}"
-        )
+        logger.warning("Notification sender not available, notifications queued only", error=str(e))
+        return {
+            "message": "Notification sender no disponible, notificaciones solo en cola",
+            "campaign_id": str(campaign_id),
+            "total_users": len(user_ids),
+            "warning": "Las notificaciones se han creado en la base de datos pero no se han enviado"
+        }
 
 
 # ----------------------------

@@ -99,6 +99,21 @@ Sistema completo de gestión de tickets digitales para mercados, con gamificaci�
 - **Pydantic** validación de datos
 - **Uvicorn** servidor ASGI
 
+## 🔧 Configuración del CRM Service
+
+El CRM service funciona de forma independiente y no requiere configuración especial:
+
+- ✅ **Segmentación de clientes**: Crear segmentos basados en comportamiento de compra
+- ✅ **Campañas**: Crear y gestionar campañas de marketing  
+- ✅ **Inferencia de preferencias**: Análisis automático con IA
+- ✅ **Gestión de notificaciones**: Crear notificaciones en base de datos
+- ⚠️ **Notificaciones push**: Requiere VAPID keys (opcional)
+
+### Fallbacks Automáticos
+- **Sin Ollama**: Usa respuestas predefinidas
+- **Sin Notification Sender**: Las notificaciones se crean solo en BD
+- **Sin VAPID keys**: El sistema funciona normalmente
+
 ## 🌐 Configuración con Dominio Personalizado
 
 ### Para hosting local con dominio `mercatmediterrani.com`:
