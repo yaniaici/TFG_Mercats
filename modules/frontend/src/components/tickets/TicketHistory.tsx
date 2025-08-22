@@ -50,8 +50,8 @@ const TicketHistory: React.FC = () => {
       setError(null);
       
       const url = statusFilter === 'all' 
-        ? `${process.env.REACT_APP_ENVIRONMENT === 'production' ? 'https://mercatmediterrani.com:8003' : 'http://localhost:8003'}/tickets/history/${user?.id}`
-        : `${process.env.REACT_APP_ENVIRONMENT === 'production' ? 'https://mercatmediterrani.com:8003' : 'http://localhost:8003'}/tickets/history/${user?.id}?status=${statusFilter}`;
+        ? `${process.env.REACT_APP_ENVIRONMENT === 'production' ? 'https://mercatmediterrani.com' : 'http://localhost:8003'}/tickets/history/${user?.id}`
+        : `${process.env.REACT_APP_ENVIRONMENT === 'production' ? 'https://mercatmediterrani.com' : 'http://localhost:8003'}/tickets/history/${user?.id}?status=${statusFilter}`;
       
       const response = await fetch(url);
       

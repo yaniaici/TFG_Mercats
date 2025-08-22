@@ -72,7 +72,7 @@ const SendTicket: React.FC = () => {
         setError(null);
         
         // Obtener información del usuario desde el auth service
-        const response = await axios.get(`${process.env.REACT_APP_ENVIRONMENT === 'production' ? 'https://mercatmediterrani.com:8001' : 'http://localhost:8001'}/users/${userId}/public-info`);
+        const response = await axios.get(`${process.env.REACT_APP_ENVIRONMENT === 'production' ? 'https://mercatmediterrani.com' : 'http://localhost:8001'}/users/${userId}/public-info`);
         setUserInfo(response.data);
         
       } catch (err: any) {
@@ -135,7 +135,7 @@ const SendTicket: React.FC = () => {
         purchase_date: ticketData.purchase_date
       };
 
-              const response = await axios.post(`${process.env.REACT_APP_ENVIRONMENT === 'production' ? 'https://mercatmediterrani.com:8003' : 'http://localhost:8003'}/tickets/digital/`, ticketPayload);
+              const response = await axios.post(`${process.env.REACT_APP_ENVIRONMENT === 'production' ? 'https://mercatmediterrani.com' : 'http://localhost:8003'}/tickets/digital/`, ticketPayload);
       
       console.log('Tiquet digital enviat:', response.data);
 
