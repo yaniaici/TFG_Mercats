@@ -82,10 +82,10 @@ const AdminDashboard: React.FC = () => {
   const handlePromoteVendor = async (id: string) => {
     setPromoteLoadingByUserId(prev => ({ ...prev, [id]: 'vendor' }));
     // Optimisme: canviar rol a la llista d'usuaris i afegir a venedors visualment
-    const targetUser = users.find(u => u.id === id);
+    const targetUser = users?.find(u => u.id === id);
     if (targetUser) {
-      setUsers(prev => prev.map(u => (u.id === id ? { ...u, role: 'vendor' } : u)));
-      setVendors(prev => (prev.some(v => v.id === id) ? prev : [...prev, { ...targetUser, role: 'vendor' }]));
+      setUsers(prev => prev?.map(u => (u.id === id ? { ...u, role: 'vendor' } : u)) || []);
+      setVendors(prev => (prev?.some(v => v.id === id) ? prev : [...(prev || []), { ...targetUser, role: 'vendor' }]));
     }
     try {
       await promoteToVendor(id);
@@ -104,7 +104,7 @@ const AdminDashboard: React.FC = () => {
   const handlePromoteAdmin = async (id: string) => {
     setPromoteLoadingByUserId(prev => ({ ...prev, [id]: 'admin' }));
     // Optimisme: canviar rol a la llista d'usuaris
-    setUsers(prev => prev.map(u => (u.id === id ? { ...u, role: 'admin' } : u)));
+    setUsers(prev => prev?.map(u => (u.id === id ? { ...u, role: 'admin' } : u)) || []);
     try {
       await promoteToAdmin(id);
       // Refrescar llistes
@@ -202,7 +202,7 @@ const AdminDashboard: React.FC = () => {
 
         <Section title="Usuaris (no venedors ni admins)">
           <div className="space-y-2">
-            {users.filter(u => u.role === 'user').map(u => (
+            {users?.filter(u => u.role === 'user').map(u => (
               <div key={u.id} className="flex items-center justify-between bg-white p-3 rounded border">
                 <div>
                   <div className="font-medium">{u.email}</div>
@@ -239,7 +239,7 @@ const AdminDashboard: React.FC = () => {
 
         <Section title="Venedors">
           <div className="space-y-2">
-            {vendors.filter(v => v.role === 'vendor').map(v => (
+            {vendors?.filter(v => v.role === 'vendor').map(v => (
               <div key={v.id} className="flex items-center justify-between bg-white p-3 rounded border">
                 <div>
                   <div className="font-medium">{v.email}</div>
@@ -252,7 +252,7 @@ const AdminDashboard: React.FC = () => {
 
         <Section title="Tots els usuaris (amb rols)">
           <div className="space-y-2">
-            {users.map(u => (
+            {users?.map(u => (
               <div key={u.id} className="flex items-center justify-between bg-white p-3 rounded border">
                 <div>
                   <div className="font-medium">{u.email}</div>
@@ -285,7 +285,7 @@ const AdminDashboard: React.FC = () => {
 
         <Section title="CRM: Segments">
           <div className="space-y-2">
-            {segments.map(s => (
+            {segments?.map(s => (
               <div key={s.id} className="bg-white p-3 rounded border">
                 <div className="flex items-center justify-between">
                   <div className="font-medium">{s.name}</div>
@@ -297,10 +297,10 @@ const AdminDashboard: React.FC = () => {
                 </div>
                 {segmentPreview[s.id] && (
                   <div className="mt-2 text-sm text-gray-700">
-                    <div>{segmentPreview[s.id].length} usuaris (mostra)</div>
-                    <ul className="list-disc pl-5">
-                      {segmentPreview[s.id].slice(0, 20).map(uid => <li key={uid}>{uid}</li>)}
-                    </ul>
+                                         <div>{segmentPreview[s.id]?.length || 0} usuaris (mostra)</div>
+                                         <ul className="list-disc pl-5">
+                       {segmentPreview[s.id]?.slice(0, 20).map(uid => <li key={uid}>{uid}</li>)}
+                     </ul>
                   </div>
                 )}
               </div>
@@ -342,7 +342,7 @@ const AdminDashboard: React.FC = () => {
 
         <Section title="CRM: Campanyes">
           <div className="space-y-2">
-            {campaigns.map(c => (
+            {campaigns?.map(c => (
               <div key={c.id} className="bg-white p-3 rounded border">
                 <div className="flex items-center justify-between">
                   <div className="font-medium">{c.name}</div>
@@ -355,10 +355,10 @@ const AdminDashboard: React.FC = () => {
                 </div>
                 {campaignPreview[c.id] && (
                   <div className="mt-2 text-sm text-gray-700">
-                    <div>{campaignPreview[c.id].length} usuaris (mostra)</div>
-                    <ul className="list-disc pl-5">
-                      {campaignPreview[c.id].slice(0, 20).map(uid => <li key={uid}>{uid}</li>)}
-                    </ul>
+                                         <div>{campaignPreview[c.id]?.length || 0} usuaris (mostra)</div>
+                                         <ul className="list-disc pl-5">
+                       {campaignPreview[c.id]?.slice(0, 20).map(uid => <li key={uid}>{uid}</li>)}
+                     </ul>
                   </div>
                 )}
               </div>
@@ -368,7 +368,7 @@ const AdminDashboard: React.FC = () => {
 
         <Section title="CRM: Notificacions (en cua)">
           <ul className="list-disc pl-5">
-            {notifications.map((n: any) => (
+            {notifications?.map((n: any) => (
               <li key={n.id}>{n.message}</li>
             ))}
           </ul>
