@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const authApi = axios.create({ 
   baseURL: process.env.REACT_APP_ENVIRONMENT === 'production' 
-    ? 'https://mercatmediterrani.com' 
+    ? 'https://mercatmediterrani.com/auth' 
     : 'http://localhost:8001'
 });
 
