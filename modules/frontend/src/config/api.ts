@@ -17,12 +17,26 @@ interface ApiConfig {
 
 export const API_CONFIG: ApiConfig = {
   // URLs base según el entorno
-  AUTH_SERVICE_URL: `${BASE_URL}:8001`,
-  BACKEND_URL: `${BASE_URL}:8000`,
-  TICKET_SERVICE_URL: `${BASE_URL}:8003`,
-  GAMIFICATION_SERVICE_URL: `${BASE_URL}:8005`,
-  CRM_SERVICE_URL: `${BASE_URL}:8006`,
-  NOTIFICATION_SERVICE_URL: `${BASE_URL}:8007`,
+  // En producción: usar rutas de Nginx sin puertos
+  // En desarrollo: usar puertos directos
+  AUTH_SERVICE_URL: process.env.REACT_APP_ENVIRONMENT === 'production' 
+    ? `${BASE_URL}/auth` 
+    : `${BASE_URL}:8001`,
+  BACKEND_URL: process.env.REACT_APP_ENVIRONMENT === 'production' 
+    ? `${BASE_URL}/api` 
+    : `${BASE_URL}:8000`,
+  TICKET_SERVICE_URL: process.env.REACT_APP_ENVIRONMENT === 'production' 
+    ? `${BASE_URL}/tickets` 
+    : `${BASE_URL}:8003`,
+  GAMIFICATION_SERVICE_URL: process.env.REACT_APP_ENVIRONMENT === 'production' 
+    ? `${BASE_URL}/gamification` 
+    : `${BASE_URL}:8005`,
+  CRM_SERVICE_URL: process.env.REACT_APP_ENVIRONMENT === 'production' 
+    ? `${BASE_URL}/crm` 
+    : `${BASE_URL}:8006`,
+  NOTIFICATION_SERVICE_URL: process.env.REACT_APP_ENVIRONMENT === 'production' 
+    ? `${BASE_URL}/notifications` 
+    : `${BASE_URL}:8007`,
   
   // Entorno
   ENVIRONMENT: process.env.REACT_APP_ENVIRONMENT || 'development',
