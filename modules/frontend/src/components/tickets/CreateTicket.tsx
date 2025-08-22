@@ -1,22 +1,21 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Webcam from 'react-webcam';
-import axios from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
-import { 
-  Camera, 
-  X, 
-  ArrowLeft, 
-  AlertCircle,
+import { API_CONFIG } from '../../config/api';
+import axios from 'axios';
+import Webcam from 'react-webcam';
+import {
+  Camera,
+  Upload,
   CheckCircle,
-  Loader,
-  Receipt,
-  Upload
+  AlertCircle,
+  ArrowLeft,
+  RotateCcw
 } from 'lucide-react';
 
-// Crear instancia específica para ticket-service (usar proxy Nginx /tickets)
+// Crear instancia específica para ticket-service usando configuración centralizada
 const ticketApi = axios.create({
-  baseURL: '/tickets'
+  baseURL: API_CONFIG.TICKET_SERVICE_URL
 });
 
 const CreateTicket: React.FC = () => {
@@ -214,7 +213,7 @@ const CreateTicket: React.FC = () => {
                   onClick={retakePhoto}
                   className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
                 >
-                  <X className="h-4 w-4" />
+                  <RotateCcw className="h-4 w-4" />
                 </button>
               </div>
               
