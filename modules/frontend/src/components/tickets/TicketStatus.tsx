@@ -40,7 +40,7 @@ const TicketStatus: React.FC = () => {
       setLoading(true);
       setError(null);
       
-              const response = await axios.get(`${API_CONFIG.TICKET_SERVICE_URL}/tickets/all/?user_id=${user.id}`);
+              const response = await axios.get(`${API_CONFIG.TICKET_SERVICE_URL}/all/?user_id=${user.id}`);
       setTickets(response.data);
     } catch (err: any) {
       console.error('Error obteniendo tickets:', err);
