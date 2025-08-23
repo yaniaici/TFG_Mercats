@@ -139,6 +139,7 @@ El script `14_verify_tables.sql` verifica automáticamente:
 ### Scripts Disponibles
 - `verify-db-init.ps1` - Verifica que la inicialització ha funcionat correctament
 - `reset-db.ps1` - Reinicialitza completament la base de dades (elimina totes les dades)
+- `test-init.ps1` - Testeja la inicialització en un contenidor temporal (per desenvolupament)
 
 ### Com utilitzar-los
 ```bash
@@ -147,6 +148,9 @@ El script `14_verify_tables.sql` verifica automáticamente:
 
 # Reinicialitzar la base de dades (ATENCIÓ: elimina totes les dades)
 ./modules/databases/postgres/scripts/reset-db.ps1
+
+# Testejar la inicialització (contenidor temporal)
+./modules/databases/postgres/scripts/test-init.ps1
 ```
 
 ## Notas Importantes
