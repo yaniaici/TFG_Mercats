@@ -7,7 +7,7 @@ class Settings:
     # Configuración de la base de datos
     DATABASE_URL: str = os.getenv(
         "DATABASE_URL",
-        "postgresql://ticket_user:ticket_password@localhost:5432/ticket_analytics"
+        "postgresql://ticket_user:ticket_password@postgres:5432/ticket_analytics"
     )
     
     # Configuración del servidor
@@ -25,7 +25,7 @@ class Settings:
     # Configuración de autenticación
     AUTH_SERVICE_URL: str = os.getenv(
         "AUTH_SERVICE_URL", 
-        "http://localhost:8001"
+        "http://auth-service:8001"
     )
     
     # Configuración de logging
