@@ -51,8 +51,8 @@ const TicketHistory: React.FC = () => {
       setError(null);
       
       const url = statusFilter === 'all' 
-        ? `${API_CONFIG.TICKET_SERVICE_URL}/history/${user?.id}`
-        : `${API_CONFIG.TICKET_SERVICE_URL}/history/${user?.id}?status=${statusFilter}`;
+        ? `${API_CONFIG.TICKET_SERVICE_URL}/tickets/history/${user?.id}`
+        : `${API_CONFIG.TICKET_SERVICE_URL}/tickets/history/${user?.id}?status=${statusFilter}`;
       
       const response = await fetch(url);
       
