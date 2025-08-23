@@ -829,12 +829,22 @@ def get_user_ticket_history(
 ):
     """Obtener historial completo de tickets de un usuario con todos los estados"""
     try:
-        query = db.query(Ticket).filter(Ticket.user_id == uuid.UUID(user_id))
+        print(f"🔍 Buscant historial per usuari: {user_id}")
+        
+        # Validar UUID
+        try:
+            user_uuid = uuid.UUID(user_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="ID d'usuari invàlid")
+        
+        query = db.query(Ticket).filter(Ticket.user_id == user_uuid)
         
         if status:
             query = query.filter(Ticket.status == status)
         
         tickets = query.order_by(Ticket.created_at.desc()).offset(skip).limit(limit).all()
+        print(f"📊 Trobats {len(tickets)} tickets per l'usuari {user_id}")
+        
         response_tickets = []
         for ticket in tickets:
             base = TicketResponse.from_orm(ticket).dict()
@@ -854,9 +864,15 @@ def get_user_ticket_history(
                 base['products'] = processing.get('productos', [])
                 base['is_digital'] = False
             response_tickets.append(base)
+        
+        print(f"✅ Retornant {len(response_tickets)} tickets processats")
         return response_tickets
+        
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error obteniendo historial: {str(e)}")
+        print(f"❌ Error obtenint historial: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error obtenint historial: {str(e)}")
 
 @app.get("/tickets/digital/{user_id}")
 def get_user_digital_tickets(
@@ -893,8 +909,47 @@ def health_check():
     return {
         "status": "healthy", 
         "timestamp": datetime.now().isoformat(),
-        "duplicate_detection_enabled": settings.ENABLE_DUPLICATE_DETECTION
+        "duplicate_detection_enabled": settings.ENABLE_DUPLICATE_DETECTION,
+        "service": "ticket-service",
+        "version": "1.0.0"
     }
+
+@app.get("/test/history/{user_id}")
+def test_user_ticket_history(
+    user_id: str,
+    db: Session = Depends(get_db)
+):
+    """Endpoint de test per verificar l'historial d'usuaris"""
+    try:
+        print(f"🧪 Test endpoint - Buscant usuari: {user_id}")
+        
+        # Verificar si l'usuari existeix
+        from models import User
+        user = db.query(User).filter(User.id == uuid.UUID(user_id)).first()
+        if not user:
+            return {
+                "error": "Usuari no trobat",
+                "user_id": user_id,
+                "tickets_count": 0
+            }
+        
+        # Comptar tickets
+        tickets_count = db.query(Ticket).filter(Ticket.user_id == uuid.UUID(user_id)).count()
+        
+        return {
+            "user_id": user_id,
+            "user_email": user.email,
+            "tickets_count": tickets_count,
+            "status": "success"
+        }
+        
+    except Exception as e:
+        print(f"❌ Error en test endpoint: {str(e)}")
+        return {
+            "error": str(e),
+            "user_id": user_id,
+            "status": "error"
+        }
 
 @app.get("/config/duplicate-detection")
 def get_duplicate_detection_config():
