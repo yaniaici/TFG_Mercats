@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import axios from 'axios';
 import { API_CONFIG } from '../config/api';
+import { setCrmToken } from '../services/crmService';
 
 // Crear instancia específica para auth-service
 const authApi = axios.create({
@@ -61,10 +62,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Configurar authApi con el token
       authApi.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
+      // Configurar token para otros servicios
+      setCrmToken(token);
+      
       // Verificar si el token es válido y obtener datos del usuario
       verifyToken();
     } else {
       setLoading(false);
+      // Limpiar tokens de otros servicios
+      setCrmToken(null);
     }
   }, [token]);
 

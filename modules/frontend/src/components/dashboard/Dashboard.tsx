@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import TicketFeed from './TicketFeed';
 import ProfileQR from '../profile/ProfileQR';
+import NotificationBell from '../notifications/NotificationBell';
 
 const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -109,6 +110,7 @@ const Dashboard: React.FC = () => {
                   <User className="h-5 w-5 text-market-500" />
                   <span className="font-medium">{user?.email}</span>
                 </div>
+                <NotificationBell />
                 <button
                   onClick={handleLogout}
                   className="flex items-center space-x-1 sm:space-x-2 text-gray-600 hover:text-market-600 transition-colors"

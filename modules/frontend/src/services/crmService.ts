@@ -1,9 +1,8 @@
 import axios from 'axios';
+import { API_CONFIG } from '../config/api';
 
 const crmApi = axios.create({ 
-  baseURL: process.env.REACT_APP_ENVIRONMENT === 'production' 
-    ? 'https://mercatmediterrani.com/crm' 
-    : 'http://localhost:8006'
+  baseURL: API_CONFIG.CRM_SERVICE_URL
 });
 
 export const setCrmToken = (token: string | null) => {

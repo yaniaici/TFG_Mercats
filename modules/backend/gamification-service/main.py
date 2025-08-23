@@ -8,7 +8,7 @@ import secrets
 from datetime import datetime, timedelta, timezone
 
 from database import get_db
-from models import UserGamification, UserBadge, ExperienceLog, Reward, RewardRedemption
+from models import UserGamification, UserBadge, ExperienceLog, Reward, RewardRedemption, SpecialReward, SpecialRewardRedemption, UserNotification
 from sqlalchemy import func
 from schemas import (
     UserGamificationResponse, 
@@ -18,7 +18,16 @@ from schemas import (
     TicketProcessedEvent,
     RewardResponse,
     RewardRedemptionCreate,
-    RewardRedemptionWithReward
+    RewardRedemptionWithReward,
+    SpecialRewardResponse,
+    SpecialRewardCreate,
+    SpecialRewardRedemptionResponse,
+    SpecialRewardWithStatusResponse,
+    UserNotificationResponse,
+    UserNotificationCreate,
+    NotificationStats,
+    SpecialRewardDistributionRequest,
+    SpecialRewardDistributionResponse
 )
 from gamification_engine import GamificationEngine
 
@@ -636,6 +645,552 @@ async def validate_redemption(redemption_code: str, db: Session = Depends(get_db
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error validando recompensa: {str(e)}"
         )
+
+# ========================================
+# ENDPOINTS PARA RECOMPENSAS ESPECIALES
+# ========================================
+
+@app.get("/special-rewards", response_model=List[SpecialRewardResponse])
+async def get_special_rewards(db: Session = Depends(get_db)):
+    """Obtiene todas las recompensas especiales disponibles"""
+    try:
+        rewards = db.query(SpecialReward).filter(SpecialReward.is_active == True).all()
+        logger.info("Recompensas especiales obtenidas", count=len(rewards))
+        return rewards
+    except Exception as e:
+        logger.error("Error obteniendo recompensas especiales", error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error obteniendo recompensas especiales: {str(e)}"
+        )
+
+@app.get("/users/{user_id}/special-rewards", response_model=List[SpecialRewardResponse])
+async def get_user_special_rewards(
+    user_id: str, 
+    user_segments: List[str] = Query(default=[]),
+    db: Session = Depends(get_db)
+):
+    """Obtiene las recompensas especiales disponibles para un usuario específico"""
+    try:
+        user_uuid = uuid.UUID(user_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="ID de usuario inválido"
+        )
+    
+    try:
+        engine = GamificationEngine(db)
+        rewards = engine.get_available_special_rewards(user_uuid, user_segments)
+        
+        logger.info("Recompensas especiales obtenidas para usuario", 
+                   user_id=user_id, 
+                   count=len(rewards))
+        return rewards
+    except Exception as e:
+        logger.error("Error obteniendo recompensas especiales del usuario", 
+                    error=str(e),
+                    user_id=user_id)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error obteniendo recompensas especiales: {str(e)}"
+        )
+
+@app.get("/users/{user_id}/special-rewards-with-status", response_model=List[SpecialRewardWithStatusResponse])
+async def get_user_special_rewards_with_status(
+    user_id: str, 
+    user_segments: List[str] = Query(default=[]),
+    db: Session = Depends(get_db)
+):
+    """Obtiene todas las recompensas especiales del usuario con información de estado"""
+    try:
+        user_uuid = uuid.UUID(user_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="ID de usuario inválido"
+        )
+    
+    try:
+        engine = GamificationEngine(db)
+        rewards_with_status = engine.get_all_user_special_rewards(user_uuid, user_segments)
+        
+        # Convertir a formato de respuesta
+        response_data = []
+        for reward_info in rewards_with_status:
+            response_data.append(SpecialRewardWithStatusResponse(
+                reward=reward_info["reward"],
+                is_redeemed=reward_info["is_redeemed"],
+                is_available=reward_info["is_available"],
+                is_expired=reward_info["is_expired"],
+                redemption_count=reward_info["redemption_count"],
+                can_redeem=reward_info["can_redeem"],
+                last_redemption=reward_info["last_redemption"]
+            ))
+        
+        logger.info("Recompensas especiales con estado obtenidas para usuario", 
+                   user_id=user_id, 
+                   count=len(response_data))
+        return response_data
+    except Exception as e:
+        logger.error("Error obteniendo recompensas especiales con estado del usuario", 
+                    error=str(e),
+                    user_id=user_id)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error obteniendo recompensas especiales con estado: {str(e)}"
+        )
+
+@app.post("/special-rewards", response_model=SpecialRewardResponse)
+async def create_special_reward(reward_data: SpecialRewardCreate, db: Session = Depends(get_db)):
+    """Crea una nueva recompensa especial"""
+    try:
+        engine = GamificationEngine(db)
+        
+        # Convertir expires_at de string a datetime si es necesario
+        reward_dict = reward_data.dict()
+        if reward_dict.get('expires_at') and isinstance(reward_dict['expires_at'], str):
+            try:
+                reward_dict['expires_at'] = datetime.fromisoformat(reward_dict['expires_at'].replace('Z', '+00:00'))
+            except ValueError:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="Formato de fecha de expiración inválido. Use formato ISO (YYYY-MM-DDTHH:MM:SS)"
+                )
+        
+        reward = engine.create_special_reward(reward_dict)
+        
+        logger.info("Recompensa especial creada", 
+                   reward_id=str(reward.id),
+                   name=reward.name)
+        return reward
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Error creando recompensa especial", error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error creando recompensa especial: {str(e)}"
+        )
+
+@app.post("/users/{user_id}/redeem-special-reward/{special_reward_id}")
+async def redeem_special_reward(user_id: str, special_reward_id: str, db: Session = Depends(get_db)):
+    """Canjea una recompensa especial para un usuario"""
+    try:
+        user_uuid = uuid.UUID(user_id)
+        reward_uuid = uuid.UUID(special_reward_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="ID de usuario o recompensa inválido"
+        )
+    
+    try:
+        engine = GamificationEngine(db)
+        redemption = engine.redeem_special_reward(user_uuid, reward_uuid)
+        
+        logger.info("Recompensa especial canjeada", 
+                   user_id=user_id,
+                   reward_id=special_reward_id,
+                   redemption_code=redemption.redemption_code)
+        
+        return {
+            "message": "Recompensa especial canjeada correctamente",
+            "redemption_code": redemption.redemption_code,
+            "created_at": redemption.created_at.isoformat()
+        }
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error("Error canjeando recompensa especial", 
+                    error=str(e),
+                    user_id=user_id,
+                    reward_id=special_reward_id)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error canjeando recompensa especial: {str(e)}"
+        )
+
+@app.post("/special-rewards/distribute", response_model=SpecialRewardDistributionResponse)
+async def distribute_special_reward(
+    request: SpecialRewardDistributionRequest, 
+    db: Session = Depends(get_db)
+):
+    """Distribuye una recompensa especial a múltiples usuarios"""
+    try:
+        engine = GamificationEngine(db)
+        
+        target_user_uuids = []
+        
+        if request.target_type == "global":
+            # Obtener todos los usuarios activos usando SQL directo
+            try:
+                from sqlalchemy import text
+                result = db.execute(text("SELECT id FROM users WHERE is_active = true AND role = 'user'"))
+                target_user_uuids = [uuid.UUID(str(row[0])) for row in result.fetchall()]
+                logger.info("Distribución global", total_users=len(target_user_uuids))
+            except Exception as e:
+                logger.error("Error obteniendo usuarios para distribución global", error=str(e))
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Error obteniendo usuarios para distribución global"
+                )
+            
+        elif request.target_type == "users":
+            # Convertir user_ids a UUIDs
+            for user_id in request.target_ids:
+                try:
+                    target_user_uuids.append(uuid.UUID(user_id))
+                except ValueError:
+                    logger.warning("ID de usuario inválido en distribución", user_id=user_id)
+            logger.info("Distribución a usuarios específicos", target_users=len(target_user_uuids))
+            
+        elif request.target_type == "segments":
+            # TODO: Implementar lógica de segmentos
+            logger.warning("Distribución por segmentos no implementada aún")
+            raise HTTPException(
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail="Distribución por segmentos no implementada aún"
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Tipo de distribución inválido: {request.target_type}"
+            )
+        
+        if not target_user_uuids:
+            return SpecialRewardDistributionResponse(
+                success=True,
+                message="No hi ha usuaris per distribuir la recompensa",
+                users_affected=0,
+                notifications_sent=0
+            )
+        
+        result = engine.distribute_special_reward(
+            request.special_reward_id,
+            target_user_uuids,
+            request.send_notifications
+        )
+        
+        logger.info("Recompensa especial distribuida", 
+                   reward_id=str(request.special_reward_id),
+                   target_type=request.target_type,
+                   users_affected=result["users_affected"],
+                   notifications_sent=result["notifications_sent"])
+        
+        return SpecialRewardDistributionResponse(**result)
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error("Error distribuyendo recompensa especial", 
+                    error=str(e),
+                    reward_id=str(request.special_reward_id))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error distribuyendo recompensa especial: {str(e)}"
+        )
+
+@app.delete("/special-rewards/{special_reward_id}")
+async def delete_special_reward(
+    special_reward_id: str, 
+    db: Session = Depends(get_db)
+):
+    """Elimina una recompensa especial y todos sus canjes asociados"""
+    try:
+        reward_uuid = uuid.UUID(special_reward_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="ID de recompensa especial inválido"
+        )
+    
+    try:
+        # Verificar que la recompensa existe
+        reward = db.query(SpecialReward).filter(SpecialReward.id == reward_uuid).first()
+        if not reward:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Recompensa especial no encontrada"
+            )
+        
+        # Eliminar todos los canjes asociados
+        db.query(SpecialRewardRedemption).filter(
+            SpecialRewardRedemption.special_reward_id == reward_uuid
+        ).delete()
+        
+        # Eliminar la recompensa
+        db.delete(reward)
+        db.commit()
+        
+        logger.info("Recompensa especial eliminada", 
+                   reward_id=str(special_reward_id),
+                   name=reward.name)
+        
+        return {
+            "success": True,
+            "message": f"Recompensa especial '{reward.name}' eliminada correctamente"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Error eliminando recompensa especial", 
+                    error=str(e),
+                    reward_id=str(special_reward_id))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error eliminando recompensa especial: {str(e)}"
+        )
+
+# ========================================
+# ENDPOINTS PARA NOTIFICACIONES PERSONALES
+# ========================================
+
+@app.get("/users/{user_id}/notifications", response_model=List[UserNotificationResponse])
+async def get_user_notifications(
+    user_id: str,
+    limit: int = Query(50, description="Número máximo de notificaciones"),
+    offset: int = Query(0, description="Desplazamiento para paginación"),
+    unread_only: bool = Query(False, description="Solo notificaciones no leídas"),
+    db: Session = Depends(get_db)
+):
+    """Obtiene las notificaciones personales de un usuario"""
+    try:
+        user_uuid = uuid.UUID(user_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="ID de usuario inválido"
+        )
+    
+    try:
+        engine = GamificationEngine(db)
+        notifications = engine.get_user_notifications(user_uuid, limit, offset, unread_only)
+        
+        logger.info("Notificaciones obtenidas", 
+                   user_id=user_id,
+                   count=len(notifications),
+                   unread_only=unread_only)
+        return notifications
+    except Exception as e:
+        logger.error("Error obteniendo notificaciones", 
+                    error=str(e),
+                    user_id=user_id)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error obteniendo notificaciones: {str(e)}"
+        )
+
+@app.get("/users/{user_id}/notifications/stats", response_model=NotificationStats)
+async def get_notification_stats(user_id: str, db: Session = Depends(get_db)):
+    """Obtiene estadísticas de notificaciones del usuario"""
+    try:
+        user_uuid = uuid.UUID(user_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="ID de usuario inválido"
+        )
+    
+    try:
+        engine = GamificationEngine(db)
+        stats = engine.get_notification_stats(user_uuid)
+        
+        logger.info("Estadísticas de notificaciones obtenidas", 
+                   user_id=user_id,
+                   total=stats.total_notifications,
+                   unread=stats.unread_notifications)
+        return stats
+    except Exception as e:
+        logger.error("Error obteniendo estadísticas de notificaciones", 
+                    error=str(e),
+                    user_id=user_id)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error obteniendo estadísticas: {str(e)}"
+        )
+
+# ========================================
+# ENDPOINTS PARA CENTRO UNIFICADO DE NOTIFICACIONES
+# ========================================
+
+@app.get("/users/{user_id}/all-notifications", response_model=List[UserNotificationResponse])
+async def get_all_user_notifications(
+    user_id: str,
+    limit: int = Query(50, description="Número máximo de notificaciones"),
+    offset: int = Query(0, description="Desplazamiento para paginación"),
+    unread_only: bool = Query(False, description="Solo notificaciones no leídas"),
+    db: Session = Depends(get_db)
+):
+    """Obtiene todas las notificaciones del usuario (centro unificado)"""
+    try:
+        user_uuid = uuid.UUID(user_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="ID de usuario inválido"
+        )
+    
+    try:
+        engine = GamificationEngine(db)
+        notifications = engine.get_all_user_notifications(user_uuid, limit, offset, unread_only)
+        
+        logger.info("Todas las notificaciones obtenidas", 
+                   user_id=user_id,
+                   count=len(notifications),
+                   unread_only=unread_only)
+        return notifications
+    except Exception as e:
+        logger.error("Error obteniendo todas las notificaciones", 
+                    error=str(e),
+                    user_id=user_id)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error obteniendo notificaciones: {str(e)}"
+        )
+
+@app.get("/users/{user_id}/all-notifications/stats")
+async def get_all_notification_stats(user_id: str, db: Session = Depends(get_db)):
+    """Obtiene estadísticas de todas las notificaciones del usuario"""
+    try:
+        user_uuid = uuid.UUID(user_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="ID de usuario inválido"
+        )
+    
+    try:
+        engine = GamificationEngine(db)
+        stats = engine.get_all_notification_stats(user_uuid)
+        
+        logger.info("Estadísticas completas de notificaciones obtenidas", 
+                   user_id=user_id,
+                   total=stats["total_notifications"],
+                   unread=stats["unread_notifications"])
+        return stats
+    except Exception as e:
+        logger.error("Error obteniendo estadísticas completas de notificaciones", 
+                    error=str(e),
+                    user_id=user_id)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error obteniendo estadísticas: {str(e)}"
+        )
+
+@app.post("/users/{user_id}/notifications/{notification_id}/read")
+async def mark_notification_as_read(user_id: str, notification_id: str, db: Session = Depends(get_db)):
+    """Marca una notificación como leída"""
+    try:
+        user_uuid = uuid.UUID(user_id)
+        notification_uuid = uuid.UUID(notification_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="ID de usuario o notificación inválido"
+        )
+    
+    try:
+        engine = GamificationEngine(db)
+        notification = engine.mark_notification_as_read(notification_uuid, user_uuid)
+        
+        logger.info("Notificación marcada como leída", 
+                   user_id=user_id,
+                   notification_id=notification_id)
+        return notification
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error("Error marcando notificación como leída", 
+                    error=str(e),
+                    user_id=user_id,
+                    notification_id=notification_id)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error marcando notificación: {str(e)}"
+        )
+
+@app.post("/users/{user_id}/notifications/read-all")
+async def mark_all_notifications_as_read(user_id: str, db: Session = Depends(get_db)):
+    """Marca todas las notificaciones del usuario como leídas"""
+    try:
+        user_uuid = uuid.UUID(user_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="ID de usuario inválido"
+        )
+    
+    try:
+        engine = GamificationEngine(db)
+        count = engine.mark_all_notifications_as_read(user_uuid)
+        
+        logger.info("Todas las notificaciones marcadas como leídas", 
+                   user_id=user_id,
+                   count=count)
+        return {
+            "message": f"Se han marcado {count} notificaciones como leídas",
+            "notifications_updated": count
+        }
+    except Exception as e:
+        logger.error("Error marcando todas las notificaciones como leídas", 
+                    error=str(e),
+                    user_id=user_id)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error marcando notificaciones: {str(e)}"
+        )
+
+@app.post("/users/{user_id}/notifications")
+async def create_user_notification(
+    user_id: str,
+    notification_data: UserNotificationCreate,
+    db: Session = Depends(get_db)
+):
+    """Crea una notificación personal para un usuario"""
+    try:
+        user_uuid = uuid.UUID(user_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="ID de usuario inválido"
+        )
+    
+    try:
+        engine = GamificationEngine(db)
+        notification = engine.create_user_notification(
+            user_uuid,
+            notification_data.title,
+            notification_data.message,
+            notification_data.notification_type,
+            notification_data.related_id
+        )
+        
+        logger.info("Notificación personal creada", 
+                   user_id=user_id,
+                   notification_id=str(notification.id),
+                   type=notification.notification_type)
+        return notification
+    except Exception as e:
+        logger.error("Error creando notificación personal", 
+                    error=str(e),
+                    user_id=user_id)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error creando notificación: {str(e)}"
+        )
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8005) 

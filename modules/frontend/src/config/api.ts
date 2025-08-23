@@ -6,6 +6,7 @@ const isProductionEnv = process.env.REACT_APP_ENVIRONMENT === 'production' ||
                        window.location.hostname === 'mercatmediterrani.com' ||
                        window.location.hostname === 'www.mercatmediterrani.com';
 
+// Configuración de URLs según el entorno
 const BASE_URL = isProductionEnv 
   ? 'https://mercatmediterrani.com' 
   : 'http://localhost';

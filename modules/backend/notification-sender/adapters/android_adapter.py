@@ -81,3 +81,4 @@ class AndroidAdapter:
         """
         return "placeholder - requiere implementación con Firebase Cloud Messaging"
 
+

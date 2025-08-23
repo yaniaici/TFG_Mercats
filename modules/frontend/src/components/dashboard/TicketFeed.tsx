@@ -34,7 +34,7 @@ const TicketFeed: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      const response = await fetch(`${API_CONFIG.TICKET_SERVICE_URL}/?user_id=${user?.id}`);
+      const response = await fetch(`${API_CONFIG.TICKET_SERVICE_URL}/tickets/history/${user?.id}`);
       
       if (!response.ok) {
         throw new Error('Error al obtenir tiquets');

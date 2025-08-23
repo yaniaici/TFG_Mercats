@@ -201,3 +201,4 @@ class WebPushAdapter:
             logger.error("Error generating VAPID keys", error=str(e))
             return {}
 
+

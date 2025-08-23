@@ -20,7 +20,8 @@ import {
   previewCampaignUsers,
   dispatchCampaign
 } from '../../services/crmService';
-import { CheckCircle, Loader2, ShieldCheck } from 'lucide-react';
+import { gamificationService, SpecialReward, SpecialRewardDistributionRequest } from '../../services/gamificationService';
+import { CheckCircle, Loader2, ShieldCheck, Gift, Sparkles, Users, Globe } from 'lucide-react';
 
 const AdminDashboard: React.FC = () => {
   // Helper function to safely render arrays
@@ -53,6 +54,24 @@ const AdminDashboard: React.FC = () => {
   });
   const [segmentPreview, setSegmentPreview] = useState<Record<string, string[]>>({});
   const [campaignPreview, setCampaignPreview] = useState<Record<string, string[]>>({});
+  const [specialRewards, setSpecialRewards] = useState<SpecialReward[]>([]);
+  const [specialRewardForm, setSpecialRewardForm] = useState({
+    name: '',
+    description: '',
+    reward_type: 'discount',
+    reward_value: '',
+    is_global: false,
+    target_users: [] as string[],
+    target_segments: [] as string[],
+    max_redemptions: '',
+    expires_at: ''
+  });
+  const [distributionForm, setDistributionForm] = useState({
+    special_reward_id: '',
+    target_type: 'global' as 'global' | 'users' | 'segments',
+    target_ids: [] as string[],
+    send_notifications: true
+  });
 
   useEffect(() => {
     setAdminToken(token);
@@ -74,6 +93,7 @@ const AdminDashboard: React.FC = () => {
       setSegments(await listSegments());
       setCampaigns(await listCampaigns());
       setNotifications(await listNotifications('queued'));
+      setSpecialRewards(await gamificationService.getSpecialRewards());
     })();
   }, [token]);
 
@@ -168,6 +188,68 @@ const AdminDashboard: React.FC = () => {
     await dispatchCampaign(campaignId);
     setNotifications(await listNotifications('queued'));
     addToast('success', 'Campanya enviada a la cua');
+  };
+
+  const submitCreateSpecialReward = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Convertir la fecha del datetime-local a formato ISO
+    let expiresAt = undefined;
+    if (specialRewardForm.expires_at) {
+      // El valor de datetime-local viene en formato YYYY-MM-DDTHH:MM
+      // Necesitamos convertirlo a ISO string
+      const date = new Date(specialRewardForm.expires_at);
+      expiresAt = date.toISOString();
+    }
+    
+    const rewardData = {
+      name: specialRewardForm.name,
+      description: specialRewardForm.description,
+      reward_type: specialRewardForm.reward_type,
+      reward_value: specialRewardForm.reward_value,
+      is_global: specialRewardForm.is_global,
+      target_users: specialRewardForm.target_users,
+      target_segments: specialRewardForm.target_segments,
+      max_redemptions: specialRewardForm.max_redemptions ? Number(specialRewardForm.max_redemptions) : undefined,
+      expires_at: expiresAt,
+      is_active: true
+    };
+    
+    await gamificationService.createSpecialReward(rewardData);
+    setSpecialRewards(await gamificationService.getSpecialRewards());
+    setSpecialRewardForm({
+      name: '', description: '', reward_type: 'discount', reward_value: '',
+      is_global: false, target_users: [], target_segments: [], max_redemptions: '', expires_at: ''
+    });
+    addToast('success', 'Recompensa especial creada correctament');
+  };
+
+  const handleDistributeSpecialReward = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const request: SpecialRewardDistributionRequest = {
+      special_reward_id: distributionForm.special_reward_id,
+      target_type: distributionForm.target_type,
+      target_ids: distributionForm.target_ids,
+      send_notifications: distributionForm.send_notifications
+    };
+    
+    const result = await gamificationService.distributeSpecialReward(request);
+    addToast('success', `${result.message} (${result.users_affected} usuaris afectats)`);
+    setDistributionForm({
+      special_reward_id: '', target_type: 'global', target_ids: [], send_notifications: true
+    });
+  };
+
+  const handleDeleteSpecialReward = async (rewardId: string) => {
+    if (window.confirm('Estàs segur que vols eliminar aquesta recompensa especial? Aquesta acció no es pot desfer.')) {
+      try {
+        await gamificationService.deleteSpecialReward(rewardId);
+        setSpecialRewards(await gamificationService.getSpecialRewards());
+        addToast('success', 'Recompensa especial eliminada correctament');
+      } catch (error: any) {
+        addToast('error', error.message || 'Error eliminant la recompensa especial');
+      }
+    }
   };
 
   return (
@@ -377,6 +459,139 @@ const AdminDashboard: React.FC = () => {
               <li key={n.id}>{n.message}</li>
             ))}
           </ul>
+        </Section>
+
+        <Section title="Recompenses Especials: Crear recompensa">
+          <form onSubmit={submitCreateSpecialReward} className="bg-white p-4 rounded border space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <input className="border p-2 rounded" placeholder="Nom" value={specialRewardForm.name} onChange={e => setSpecialRewardForm({ ...specialRewardForm, name: e.target.value })} required />
+              <input className="border p-2 rounded" placeholder="Descripció" value={specialRewardForm.description} onChange={e => setSpecialRewardForm({ ...specialRewardForm, description: e.target.value })} required />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <select className="border p-2 rounded" value={specialRewardForm.reward_type} onChange={e => setSpecialRewardForm({ ...specialRewardForm, reward_type: e.target.value })}>
+                <option value="discount">Descompte</option>
+                <option value="parking">Parking</option>
+                <option value="food">Menjar</option>
+                <option value="merchandise">Merchandising</option>
+                <option value="experience">Experiència</option>
+              </select>
+              <input className="border p-2 rounded" placeholder="Valor (ex: 10% descompte)" value={specialRewardForm.reward_value} onChange={e => setSpecialRewardForm({ ...specialRewardForm, reward_value: e.target.value })} required />
+              <input className="border p-2 rounded" placeholder="Màxim canjes per usuari" type="number" value={specialRewardForm.max_redemptions} onChange={e => setSpecialRewardForm({ ...specialRewardForm, max_redemptions: e.target.value })} />
+            </div>
+            <div className="flex items-center space-x-3">
+              <label className="flex items-center space-x-2">
+                <input type="checkbox" checked={specialRewardForm.is_global} onChange={e => setSpecialRewardForm({ ...specialRewardForm, is_global: e.target.checked })} />
+                <span>Per a tots els usuaris</span>
+              </label>
+            </div>
+            <input 
+              type="datetime-local" 
+              className="border p-2 rounded" 
+              value={specialRewardForm.expires_at} 
+              onChange={e => setSpecialRewardForm({ ...specialRewardForm, expires_at: e.target.value })} 
+            />
+            <button type="submit" className="px-4 py-2 bg-purple-600 text-white rounded">Crear recompensa especial</button>
+          </form>
+        </Section>
+
+        <Section title="Recompenses Especials: Llista">
+          <div className="space-y-2">
+            {(specialRewards || []).map(r => (
+              <div key={r.id} className="bg-white p-3 rounded border">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-medium">{r.name}</div>
+                    <div className="text-sm text-gray-600">{r.description}</div>
+                    <div className="text-xs text-gray-500">
+                      {r.is_global ? 'Global' : 'Específica'} • {r.reward_type} • {r.reward_value}
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {r.is_global ? <Globe className="h-4 w-4 text-blue-500" /> : <Users className="h-4 w-4 text-green-500" />}
+                    <Sparkles className="h-4 w-4 text-purple-500" />
+                    <button
+                      onClick={() => handleDeleteSpecialReward(r.id)}
+                      className="px-2 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
+                      title="Eliminar recompensa"
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Section>
+
+        <Section title="Recompenses Especials: Distribuir">
+          <form onSubmit={handleDistributeSpecialReward} className="bg-white p-4 rounded border space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <select className="border p-2 rounded" value={distributionForm.special_reward_id} onChange={e => setDistributionForm({ ...distributionForm, special_reward_id: e.target.value })} required>
+                <option value="">Selecciona una recompensa</option>
+                {(specialRewards || []).map(r => (
+                  <option key={r.id} value={r.id}>{r.name}</option>
+                ))}
+              </select>
+              <select className="border p-2 rounded" value={distributionForm.target_type} onChange={e => setDistributionForm({ ...distributionForm, target_type: e.target.value as 'global' | 'users' | 'segments' })}>
+                <option value="global">Per a tots els usuaris</option>
+                <option value="users">Usuaris específics</option>
+                <option value="segments">Segments</option>
+              </select>
+            </div>
+            {distributionForm.target_type === 'users' && (
+              <div>
+                <div className="font-medium mb-2">Selecciona usuaris</div>
+                <div className="grid md:grid-cols-3 gap-2 max-h-32 overflow-y-auto">
+                  {(users || []).map(u => (
+                    <label key={u.id} className="flex items-center gap-2 bg-gray-50 border rounded p-2">
+                      <input
+                        type="checkbox"
+                        checked={distributionForm.target_ids.includes(u.id)}
+                        onChange={e => {
+                          const checked = e.target.checked;
+                          setDistributionForm(prev => ({
+                            ...prev,
+                            target_ids: checked ? [...prev.target_ids, u.id] : prev.target_ids.filter(id => id !== u.id)
+                          }));
+                        }}
+                      />
+                      <span className="text-sm">{u.email}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+            {distributionForm.target_type === 'segments' && (
+              <div>
+                <div className="font-medium mb-2">Selecciona segments</div>
+                <div className="grid md:grid-cols-3 gap-2">
+                  {(segments || []).map(s => (
+                    <label key={s.id} className="flex items-center gap-2 bg-gray-50 border rounded p-2">
+                      <input
+                        type="checkbox"
+                        checked={distributionForm.target_ids.includes(s.id)}
+                        onChange={e => {
+                          const checked = e.target.checked;
+                          setDistributionForm(prev => ({
+                            ...prev,
+                            target_ids: checked ? [...prev.target_ids, s.id] : prev.target_ids.filter(id => id !== s.id)
+                          }));
+                        }}
+                      />
+                      <span className="text-sm">{s.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="flex items-center space-x-2">
+              <label className="flex items-center space-x-2">
+                <input type="checkbox" checked={distributionForm.send_notifications} onChange={e => setDistributionForm({ ...distributionForm, send_notifications: e.target.checked })} />
+                <span>Enviar notificacions</span>
+              </label>
+            </div>
+            <button type="submit" className="px-4 py-2 bg-purple-600 text-white rounded">Distribuir recompensa</button>
+          </form>
         </Section>
       </div>
     </AdminPrivateRoute>

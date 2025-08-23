@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { gamificationService, Reward, GamificationStats } from '../../services/gamificationService';
+import { gamificationService, Reward, GamificationStats, SpecialReward, SpecialRewardWithStatus } from '../../services/gamificationService';
 import { 
   ArrowLeft, 
   Coins, 
@@ -13,7 +13,8 @@ import {
   Gift,
   Star,
   AlertCircle,
-  Loader
+  Loader,
+  Sparkles
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import QRModal from './QRModal';
@@ -22,9 +23,11 @@ const RewardsPage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [rewards, setRewards] = useState<Reward[]>([]);
+  const [specialRewards, setSpecialRewards] = useState<SpecialRewardWithStatus[]>([]);
   const [userStats, setUserStats] = useState<GamificationStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [redeeming, setRedeeming] = useState<string | null>(null);
+  const [redeemingSpecial, setRedeemingSpecial] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [qrModal, setQrModal] = useState<{
@@ -45,11 +48,13 @@ const RewardsPage: React.FC = () => {
 
     try {
       setLoading(true);
-      const [rewardsData, statsData] = await Promise.all([
+      const [rewardsData, specialRewardsData, statsData] = await Promise.all([
         gamificationService.getRewards(),
+        gamificationService.getUserSpecialRewardsWithStatus(user.id),
         gamificationService.getUserStats(user.id)
       ]);
       setRewards(rewardsData);
+      setSpecialRewards(specialRewardsData);
       setUserStats(statsData);
     } catch (err) {
       console.error('Error carregant dades:', err);
@@ -97,6 +102,37 @@ const RewardsPage: React.FC = () => {
     }
   };
 
+  const handleRedeemSpecial = async (specialRewardWithStatus: SpecialRewardWithStatus) => {
+    if (!user?.id) return;
+
+    try {
+      setRedeemingSpecial(specialRewardWithStatus.reward.id);
+      setError(null);
+      setSuccess(null);
+
+      const result = await gamificationService.redeemSpecialReward(user.id, specialRewardWithStatus.reward.id);
+      
+      // Mostrar modal QR para recompensa especial
+      setQrModal({
+        isOpen: true,
+        redemptionCode: result.redemption_code,
+        rewardName: specialRewardWithStatus.reward.name,
+        rewardDescription: specialRewardWithStatus.reward.description,
+        pointsSpent: 0, // Las recompensas especiales no cuestan puntos
+        expiresAt: '' // Las recompensas especiales no expiran por defecto
+      });
+      
+      // Recargar recompensas especiales con estado
+      const newSpecialRewards = await gamificationService.getUserSpecialRewardsWithStatus(user.id);
+      setSpecialRewards(newSpecialRewards);
+
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setRedeemingSpecial(null);
+    }
+  };
+
   const getRewardIcon = (rewardType: string) => {
     switch (rewardType) {
       case 'parking':
@@ -128,6 +164,23 @@ const RewardsPage: React.FC = () => {
         return 'bg-yellow-100 text-yellow-600';
       default:
         return 'bg-gray-100 text-gray-600';
+    }
+  };
+
+  const getSpecialRewardTypeColor = (rewardType: string) => {
+    switch (rewardType) {
+      case 'parking':
+        return 'bg-blue-200 text-blue-700';
+      case 'food':
+        return 'bg-orange-200 text-orange-700';
+      case 'discount':
+        return 'bg-green-200 text-green-700';
+      case 'merchandise':
+        return 'bg-purple-200 text-purple-700';
+      case 'experience':
+        return 'bg-yellow-200 text-yellow-700';
+      default:
+        return 'bg-gray-200 text-gray-700';
     }
   };
 
@@ -204,97 +257,229 @@ const RewardsPage: React.FC = () => {
           </div>
         )}
 
-        {/* Rewards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {rewards.map((reward) => {
-            const canAfford = userStats ? userStats.experience >= reward.points_cost : false;
-            const isAvailable = reward.is_active && 
-              (!reward.max_redemptions || reward.current_redemptions < reward.max_redemptions);
-
-            return (
-              <div key={reward.id} className="card hover:shadow-lg transition-shadow">
-                <div className="p-6">
-                  {/* Reward Header */}
-                  <div className="flex items-start justify-between mb-4">
-                    <div className={`p-2 rounded-lg ${getRewardTypeColor(reward.reward_type)}`}>
-                      {getRewardIcon(reward.reward_type)}
-                    </div>
-                    <div className="text-right">
-                      <div className="flex items-center space-x-1 text-market-600">
-                        <Coins className="h-4 w-4" />
-                        <span className="font-semibold">{reward.points_cost}</span>
+        {/* Special Rewards Section */}
+        {specialRewards.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center space-x-2 mb-4">
+              <Sparkles className="h-6 w-6 text-purple-500" />
+              <h2 className="text-xl font-semibold text-gray-900">Recompenses Especials</h2>
+              <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">
+                Gratuïtes
+              </span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {specialRewards.map((rewardWithStatus) => {
+                const reward = rewardWithStatus.reward;
+                const isRedeemed = rewardWithStatus.is_redeemed;
+                const canRedeem = rewardWithStatus.can_redeem;
+                
+                return (
+                  <div key={reward.id} className={`card hover:shadow-lg transition-shadow border-2 ${
+                    isRedeemed 
+                      ? 'border-gray-300 bg-gradient-to-br from-gray-50 to-white' 
+                      : 'border-purple-200 bg-gradient-to-br from-purple-50 to-white'
+                  }`}>
+                    <div className="p-6">
+                      {/* Reward Header */}
+                      <div className="flex items-start justify-between mb-4">
+                        <div className={`p-2 rounded-lg ${getSpecialRewardTypeColor(reward.reward_type)}`}>
+                          {getRewardIcon(reward.reward_type)}
+                        </div>
+                        <div className="text-right">
+                          <div className="flex items-center space-x-1 text-purple-600">
+                            <Sparkles className="h-4 w-4" />
+                            <span className="font-semibold">Gratuïta</span>
+                          </div>
+                          <span className="text-xs text-gray-500">0 punts</span>
+                        </div>
                       </div>
-                      <span className="text-xs text-gray-500">punts</span>
+
+                      {/* Status Badge */}
+                      {isRedeemed && (
+                        <div className="mb-4">
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Ja canviada
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Reward Info */}
+                      <h3 className={`text-lg font-semibold mb-2 ${
+                        isRedeemed ? 'text-gray-500' : 'text-gray-900'
+                      }`}>
+                        {reward.name}
+                      </h3>
+                      <p className={`text-sm mb-4 ${
+                        isRedeemed ? 'text-gray-400' : 'text-gray-600'
+                      }`}>
+                        {reward.description}
+                      </p>
+
+                      {/* Reward Value */}
+                      <div className={`rounded-lg p-3 mb-4 ${
+                        isRedeemed ? 'bg-gray-50' : 'bg-purple-50'
+                      }`}>
+                        <div className="flex items-center justify-between">
+                          <span className={`text-sm font-medium ${
+                            isRedeemed ? 'text-gray-500' : 'text-gray-700'
+                          }`}>
+                            {reward.reward_value}
+                          </span>
+                          <span className={`text-xs px-2 py-1 rounded-full ${getSpecialRewardTypeColor(reward.reward_type)}`}>
+                            {reward.reward_type}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Special Badge */}
+                      <div className="mb-4">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          isRedeemed 
+                            ? 'bg-gray-100 text-gray-600' 
+                            : 'bg-purple-100 text-purple-800'
+                        }`}>
+                          <Sparkles className="h-3 w-3 mr-1" />
+                          Recompensa Especial
+                        </span>
+                      </div>
+
+                      {/* Action Button */}
+                      {canRedeem && !isRedeemed ? (
+                        <button
+                          onClick={() => handleRedeemSpecial(rewardWithStatus)}
+                          disabled={redeemingSpecial === reward.id}
+                          className="w-full py-3 px-4 rounded-lg font-semibold transition-all duration-200 bg-purple-500 hover:bg-purple-600 text-white shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                          {redeemingSpecial === reward.id ? (
+                            <div className="flex items-center justify-center space-x-2">
+                              <Loader className="h-4 w-4 animate-spin" />
+                              <span>Canviant...</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-center space-x-2">
+                              <Sparkles className="h-4 w-4" />
+                              <span>Canviar Recompensa Especial</span>
+                            </div>
+                          )}
+                        </button>
+                      ) : isRedeemed ? (
+                        <div className="w-full py-3 px-4 rounded-lg font-semibold bg-gray-200 text-gray-600 text-center">
+                          <div className="flex items-center justify-center space-x-2">
+                            <CheckCircle className="h-4 w-4" />
+                            <span>Ja canviada</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="w-full py-3 px-4 rounded-lg font-semibold bg-red-100 text-red-600 text-center">
+                          <div className="flex items-center justify-center space-x-2">
+                            <XCircle className="h-4 w-4" />
+                            <span>No disponible</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
-                  {/* Reward Info */}
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    {reward.name}
-                  </h3>
-                  <p className="text-gray-600 text-sm mb-4">
-                    {reward.description}
-                  </p>
+        {/* Regular Rewards Section */}
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Recompenses amb Punts</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {rewards.map((reward) => {
+              const canAfford = userStats ? userStats.experience >= reward.points_cost : false;
+              const isAvailable = reward.is_active && 
+                (!reward.max_redemptions || reward.current_redemptions < reward.max_redemptions);
 
-                  {/* Reward Value */}
-                  <div className="bg-gray-50 rounded-lg p-3 mb-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700">
-                        {reward.reward_value}
-                      </span>
-                      <span className={`text-xs px-2 py-1 rounded-full ${getRewardTypeColor(reward.reward_type)}`}>
-                        {reward.reward_type}
-                      </span>
+              return (
+                <div key={reward.id} className="card hover:shadow-lg transition-shadow">
+                  <div className="p-6">
+                    {/* Reward Header */}
+                    <div className="flex items-start justify-between mb-4">
+                      <div className={`p-2 rounded-lg ${getRewardTypeColor(reward.reward_type)}`}>
+                        {getRewardIcon(reward.reward_type)}
+                      </div>
+                      <div className="text-right">
+                        <div className="flex items-center space-x-1 text-market-600">
+                          <Coins className="h-4 w-4" />
+                          <span className="font-semibold">{reward.points_cost}</span>
+                        </div>
+                        <span className="text-xs text-gray-500">punts</span>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Availability Info */}
-                  {reward.max_redemptions && (
-                    <div className="text-xs text-gray-500 mb-4">
-                      {reward.current_redemptions} / {reward.max_redemptions} canjes disponibles
+                    {/* Reward Info */}
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      {reward.name}
+                    </h3>
+                    <p className="text-gray-600 text-sm mb-4">
+                      {reward.description}
+                    </p>
+
+                    {/* Reward Value */}
+                    <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-700">
+                          {reward.reward_value}
+                        </span>
+                        <span className={`text-xs px-2 py-1 rounded-full ${getRewardTypeColor(reward.reward_type)}`}>
+                          {reward.reward_type}
+                        </span>
+                      </div>
                     </div>
-                  )}
 
-                  {/* Action Button */}
-                  <button
-                    onClick={() => handleRedeem(reward)}
-                    disabled={!canAfford || !isAvailable || redeeming === reward.id}
-                    className={`w-full py-3 px-4 rounded-lg font-semibold transition-all duration-200 ${
-                      canAfford && isAvailable
-                        ? 'bg-market-500 hover:bg-market-600 text-white shadow-lg hover:shadow-xl transform hover:scale-105'
-                        : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                    }`}
-                  >
-                    {redeeming === reward.id ? (
-                      <div className="flex items-center justify-center space-x-2">
-                        <Loader className="h-4 w-4 animate-spin" />
-                        <span>Canviant...</span>
-                      </div>
-                    ) : !canAfford ? (
-                      <div className="flex items-center justify-center space-x-2">
-                        <AlertCircle className="h-4 w-4" />
-                        <span>Punts insuficients</span>
-                      </div>
-                    ) : !isAvailable ? (
-                      <div className="flex items-center justify-center space-x-2">
-                        <XCircle className="h-4 w-4" />
-                        <span>No disponible</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-center space-x-2">
-                        <Gift className="h-4 w-4" />
-                        <span>Canviar Recompensa</span>
+                    {/* Availability Info */}
+                    {reward.max_redemptions && (
+                      <div className="text-xs text-gray-500 mb-4">
+                        {reward.current_redemptions} / {reward.max_redemptions} canjes disponibles
                       </div>
                     )}
-                  </button>
+
+                    {/* Action Button */}
+                    <button
+                      onClick={() => handleRedeem(reward)}
+                      disabled={!canAfford || !isAvailable || redeeming === reward.id}
+                      className={`w-full py-3 px-4 rounded-lg font-semibold transition-all duration-200 ${
+                        canAfford && isAvailable
+                          ? 'bg-market-500 hover:bg-market-600 text-white shadow-lg hover:shadow-xl transform hover:scale-105'
+                          : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                      }`}
+                    >
+                      {redeeming === reward.id ? (
+                        <div className="flex items-center justify-center space-x-2">
+                          <Loader className="h-4 w-4 animate-spin" />
+                          <span>Canviant...</span>
+                        </div>
+                      ) : !canAfford ? (
+                        <div className="flex items-center justify-center space-x-2">
+                          <AlertCircle className="h-4 w-4" />
+                          <span>Punts insuficients</span>
+                        </div>
+                      ) : !isAvailable ? (
+                        <div className="flex items-center justify-center space-x-2">
+                          <XCircle className="h-4 w-4" />
+                          <span>No disponible</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center space-x-2">
+                          <Gift className="h-4 w-4" />
+                          <span>Canviar Recompensa</span>
+                        </div>
+                      )}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
 
         {/* Empty State */}
-        {rewards.length === 0 && !loading && (
+        {rewards.length === 0 && specialRewards.length === 0 && !loading && (
           <div className="text-center py-12">
             <Gift className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">

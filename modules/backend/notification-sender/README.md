@@ -174,3 +174,4 @@ docker run -p 8007:8007 notification-sender
 2. Comprobar estado de la base de datos
 3. Revisar logs del adapter correspondiente
 
+

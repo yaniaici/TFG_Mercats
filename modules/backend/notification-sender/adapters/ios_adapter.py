@@ -81,3 +81,4 @@ class IOSAdapter:
         """
         return "placeholder - requiere implementación con Apple Push Notification Service"
 
+

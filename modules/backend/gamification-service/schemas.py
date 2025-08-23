@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional, List, Union
 from datetime import datetime
 import uuid
 
@@ -158,4 +158,121 @@ class RewardRedemptionWithReward(BaseModel):
     reward_value: str
     
     class Config:
-        from_attributes = True 
+        from_attributes = True
+
+# Esquemas para recompensas especiales
+class SpecialRewardBase(BaseModel):
+    """Esquema base para recompensas especiales"""
+    name: str = Field(..., description="Nombre de la recompensa especial")
+    description: str = Field(..., description="Descripción de la recompensa")
+    reward_type: str = Field(..., description="Tipo de recompensa")
+    reward_value: str = Field(..., description="Valor de la recompensa")
+    is_global: bool = Field(False, description="Si es para todos los usuarios")
+    target_users: List[str] = Field(default=[], description="Lista de user_ids específicos")
+    target_segments: List[str] = Field(default=[], description="Lista de segmentos objetivo")
+    max_redemptions: Optional[int] = Field(None, description="Máximo número de canjes por usuario")
+    expires_at: Optional[Union[datetime, str]] = Field(None, description="Fecha de expiración")
+    is_active: bool = Field(True, description="Si la recompensa está activa")
+
+class SpecialRewardCreate(SpecialRewardBase):
+    """Esquema para crear recompensa especial"""
+    pass
+
+class SpecialRewardResponse(SpecialRewardBase):
+    """Esquema de respuesta para recompensas especiales"""
+    id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+class SpecialRewardRedemptionBase(BaseModel):
+    """Esquema base para canjes de recompensas especiales"""
+    user_id: uuid.UUID = Field(..., description="ID del usuario")
+    special_reward_id: uuid.UUID = Field(..., description="ID de la recompensa especial")
+    redemption_code: str = Field(..., description="Código único del canje")
+
+class SpecialRewardRedemptionCreate(SpecialRewardRedemptionBase):
+    """Esquema para crear canje de recompensa especial"""
+    pass
+
+class SpecialRewardRedemptionResponse(SpecialRewardRedemptionBase):
+    """Esquema de respuesta para canjes de recompensas especiales"""
+    id: uuid.UUID
+    is_used: bool
+    used_at: Optional[datetime] = None
+    created_at: datetime
+    updated_at: datetime
+    special_reward: SpecialRewardResponse  # Incluir información de la recompensa especial
+    
+    class Config:
+        from_attributes = True
+
+class SpecialRewardRedemptionSimpleResponse(BaseModel):
+    """Esquema simplificado para canjes de recompensas especiales (sin special_reward)"""
+    id: uuid.UUID
+    user_id: uuid.UUID
+    special_reward_id: uuid.UUID
+    redemption_code: str
+    is_used: bool
+    used_at: Optional[datetime] = None
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+class SpecialRewardWithStatusResponse(BaseModel):
+    """Esquema de respuesta para recompensas especiales con información de estado"""
+    reward: SpecialRewardResponse
+    is_redeemed: bool
+    is_available: bool
+    is_expired: bool
+    redemption_count: int
+    can_redeem: bool
+    last_redemption: Optional[SpecialRewardRedemptionSimpleResponse] = None
+
+# Esquemas para notificaciones personales
+class UserNotificationBase(BaseModel):
+    """Esquema base para notificaciones personales"""
+    title: str = Field(..., description="Título de la notificación")
+    message: str = Field(..., description="Mensaje de la notificación")
+    notification_type: str = Field(..., description="Tipo: 'reward', 'special_reward', 'system', 'promotion'")
+    related_id: Optional[uuid.UUID] = Field(None, description="ID relacionado")
+
+class UserNotificationCreate(UserNotificationBase):
+    """Esquema para crear notificación personal"""
+    user_id: uuid.UUID = Field(..., description="ID del usuario")
+
+class UserNotificationResponse(UserNotificationBase):
+    """Esquema de respuesta para notificaciones personales"""
+    id: uuid.UUID
+    user_id: uuid.UUID
+    is_read: bool
+    read_at: Optional[datetime] = None
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+class NotificationStats(BaseModel):
+    """Esquema para estadísticas de notificaciones"""
+    total_notifications: int
+    unread_notifications: int
+    notifications_by_type: dict
+
+# Esquemas para el admin
+class SpecialRewardDistributionRequest(BaseModel):
+    """Esquema para solicitud de distribución de recompensas especiales"""
+    special_reward_id: uuid.UUID
+    target_type: str = Field(..., description="'global', 'users', 'segments'")
+    target_ids: List[str] = Field(default=[], description="Lista de user_ids o segment_ids")
+    send_notifications: bool = Field(True, description="Si enviar notificaciones")
+
+class SpecialRewardDistributionResponse(BaseModel):
+    """Esquema de respuesta para distribución de recompensas especiales"""
+    success: bool
+    message: str
+    users_affected: int
+    notifications_sent: int 
