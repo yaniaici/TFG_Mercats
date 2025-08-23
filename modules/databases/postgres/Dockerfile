@@ -7,6 +7,8 @@ ENV POSTGRES_USER=postgres
 ENV POSTGRES_PASSWORD=postgres
 
 # Copiar scripts de inicialización
+# Estos scripts se ejecutarán automáticamente al crear la base de datos
+# El orden de ejecución es alfabético, por eso usamos números en los nombres
 COPY init-scripts/ /docker-entrypoint-initdb.d/
 
 # Exponer puerto

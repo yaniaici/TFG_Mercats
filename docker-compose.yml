@@ -249,10 +249,11 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./modules/databases/postgres/logs:/var/lib/postgresql/log
+      - ./modules/databases/postgres/init-scripts:/docker-entrypoint-initdb.d
     networks:
       - tfg_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ticket_user -d ticket_analytics"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 30s
       timeout: 10s
       retries: 3

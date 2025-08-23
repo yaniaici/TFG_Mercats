@@ -4,7 +4,14 @@ Este directorio contiene todos los scripts SQL necesarios para inicializar la ba
 
 ## Orden de Ejecución
 
-Los scripts se ejecutan automáticamente en orden alfabético por Docker:
+Los scripts se ejecutan automáticamente en orden alfabético por Docker cuando se monta el volumen `/docker-entrypoint-initdb.d/` en el docker-compose.yml:
+
+**IMPORTANTE**: A partir de la versió actualitzada, els scripts s'executaran automàticament gràcies a la configuració del volum al `docker-compose.yml`:
+
+```yaml
+volumes:
+  - ./modules/databases/postgres/init-scripts:/docker-entrypoint-initdb.d
+```
 
 1. **00_init_database.sql** - Script principal con mensajes de inicio y finalización
 2. **01_create_extensions.sql** - Extensiones necesarias (uuid-ossp, pgcrypto, pg_stat_statements)
@@ -127,6 +134,21 @@ El script `14_verify_tables.sql` verifica automáticamente:
 - Que las extensiones necesarias están instaladas
 - Que las funciones principales están disponibles
 
+## Scripts de Verificació i Gestió
+
+### Scripts Disponibles
+- `verify-db-init.ps1` - Verifica que la inicialització ha funcionat correctament
+- `reset-db.ps1` - Reinicialitza completament la base de dades (elimina totes les dades)
+
+### Com utilitzar-los
+```bash
+# Verificar la inicialització
+./modules/databases/postgres/scripts/verify-db-init.ps1
+
+# Reinicialitzar la base de dades (ATENCIÓ: elimina totes les dades)
+./modules/databases/postgres/scripts/reset-db.ps1
+```
+
 ## Notas Importantes
 
 1. **Orden de ejecución**: Los scripts se ejecutan en orden alfabético, por eso se numeran con prefijos
@@ -134,3 +156,4 @@ El script `14_verify_tables.sql` verifica automáticamente:
 3. **Producción**: Cambiar siempre la contraseña del administrador en producción
 4. **Backup**: Hacer backup antes de ejecutar en producción
 5. **Logs**: Revisar los logs de PostgreSQL para detectar errores durante la inicialización
+6. **Inicialització automàtica**: Els scripts s'executaran automàticament gràcies al volum muntat al docker-compose.yml
