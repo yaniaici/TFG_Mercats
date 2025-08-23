@@ -136,7 +136,7 @@ const SendTicket: React.FC = () => {
         purchase_date: ticketData.purchase_date
       };
 
-              const response = await axios.post(`${API_CONFIG.TICKET_SERVICE_URL}/digital/`, ticketPayload);
+              const response = await axios.post(`${API_CONFIG.TICKET_SERVICE_URL}/tickets/digital/`, ticketPayload);
       
       console.log('Tiquet digital enviat:', response.data);
 

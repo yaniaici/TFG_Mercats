@@ -86,7 +86,7 @@ const CreateTicket: React.FC = () => {
       formData.append('file', blob, 'tiquet-compra.jpg');
       formData.append('user_id', user?.id || '');
 
-      await ticketApi.post('/upload/', formData, {
+      await ticketApi.post('/tickets/upload/', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
