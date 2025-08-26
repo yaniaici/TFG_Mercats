@@ -488,6 +488,7 @@ async def upload_ticket(
         raise HTTPException(status_code=500, detail=f"Error subiendo ticket: {str(e)}")
 
 @app.post("/tickets/digital/", response_model=TicketResponse)
+@app.post("/digital/", response_model=TicketResponse)
 async def create_digital_ticket(
     ticket_data: dict,
     db: Session = Depends(get_db)
@@ -820,6 +821,7 @@ def get_ticket(ticket_id: uuid.UUID, db: Session = Depends(get_db)):
     return ticket
 
 @app.get("/tickets/history/{user_id}")
+@app.get("/history/{user_id}")
 def get_user_ticket_history(
     user_id: str,
     status: str = None,
@@ -903,6 +905,31 @@ def get_user_digital_tickets(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error obteniendo tickets digitales: {str(e)}")
 
+@app.get("/debug/user-info")
+def debug_user_info():
+    """Endpoint de debug per verificar l'estat de l'usuari"""
+    return {
+        "message": "Ticket service funciona correctament",
+        "timestamp": datetime.now().isoformat(),
+        "available_users": [
+            {
+                "id": "afdd45db-0aac-4b26-af5f-ff9ad39ec7f2",
+                "email": "pato@pato.pato",
+                "tickets_count": 4
+            },
+            {
+                "id": "7df6e3c1-062f-4ede-9ce4-c9e60a73ad9b", 
+                "email": "admin@tfg.com",
+                "tickets_count": 2
+            }
+        ],
+        "endpoints": {
+            "health": "/health",
+            "ticket_history": "/tickets/history/{user_id}",
+            "debug_user_info": "/debug/user-info"
+        }
+    }
+
 @app.get("/health")
 def health_check():
     """Verificar estado del servicio"""
@@ -912,186 +939,4 @@ def health_check():
         "duplicate_detection_enabled": settings.ENABLE_DUPLICATE_DETECTION,
         "service": "ticket-service",
         "version": "1.0.0"
-    }
-
-@app.get("/test/history/{user_id}")
-def test_user_ticket_history(
-    user_id: str,
-    db: Session = Depends(get_db)
-):
-    """Endpoint de test per verificar l'historial d'usuaris"""
-    try:
-        print(f"🧪 Test endpoint - Buscant usuari: {user_id}")
-        
-        # Verificar si l'usuari existeix
-        from models import User
-        user = db.query(User).filter(User.id == uuid.UUID(user_id)).first()
-        if not user:
-            return {
-                "error": "Usuari no trobat",
-                "user_id": user_id,
-                "tickets_count": 0
-            }
-        
-        # Comptar tickets
-        tickets_count = db.query(Ticket).filter(Ticket.user_id == uuid.UUID(user_id)).count()
-        
-        return {
-            "user_id": user_id,
-            "user_email": user.email,
-            "tickets_count": tickets_count,
-            "status": "success"
-        }
-        
-    except Exception as e:
-        print(f"❌ Error en test endpoint: {str(e)}")
-        return {
-            "error": str(e),
-            "user_id": user_id,
-            "status": "error"
-        }
-
-@app.get("/config/duplicate-detection")
-def get_duplicate_detection_config():
-    """Obtener configuración actual de detección de duplicados"""
-    return {
-        "enabled": settings.ENABLE_DUPLICATE_DETECTION,
-        "description": "Controla si el sistema detecta y marca tickets duplicados"
-    }
-
-@app.post("/config/duplicate-detection")
-def update_duplicate_detection_config(enabled: bool):
-    """Actualizar configuración de detección de duplicados (solo para desarrollo)"""
-    if settings.DEBUG:
-        # En modo debug, permitir cambiar la configuración
-        settings.ENABLE_DUPLICATE_DETECTION = enabled
-        return {
-            "enabled": settings.ENABLE_DUPLICATE_DETECTION,
-            "message": f"Detección de duplicados {'habilitada' if enabled else 'deshabilitada'}"
-        }
-    else:
-        raise HTTPException(
-            status_code=403, 
-            detail="Cambio de configuración no permitido en producción"
-        )
-
-@app.post("/check-duplicate")
-def check_duplicate_before_processing(
-    request: dict,
-    db: Session = Depends(get_db)
-):
-    """
-    Verificar si existe un ticket duplicado antes del procesamiento
-    
-    Args:
-        user_id: ID del usuario
-        fecha: Fecha del ticket en formato dd/mm/yyyy o dd/mm/yyyy hh:mm
-        productos: Lista de productos del ticket
-        db: Sesión de base de datos
-        
-    Returns:
-        True si es un duplicado, False si no
-    """
-    # Extraer datos del request
-    user_id = request.get('user_id', '')
-    fecha = request.get('fecha', '')
-    productos = request.get('productos', [])
-    
-    if not user_id or not fecha or not productos:
-        return {"is_duplicate": False, "reason": "Datos insuficientes para verificar duplicados"}
-    
-    # Verificar si la detección de duplicados está habilitada
-    if not settings.ENABLE_DUPLICATE_DETECTION:
-        return {"is_duplicate": False, "reason": "Detección de duplicados deshabilitada"}
-    
-    try:
-        # Parsear fecha y hora
-        try:
-            if ':' in fecha:  # Si incluye hora
-                purchase_datetime = datetime.strptime(fecha, "%d/%m/%Y %H:%M")
-            else:  # Solo fecha
-                purchase_datetime = datetime.strptime(fecha, "%d/%m/%Y")
-        except ValueError as e:
-            return {"is_duplicate": False, "reason": f"Error parseando fecha: {e}"}
-        
-        # Crear un hash de los productos para comparación
-        productos_hash = hash(tuple(sorted([str(p) for p in productos])))
-        
-        # Buscar tickets del mismo usuario que ya han sido procesados
-        existing_tickets = db.query(Ticket).filter(
-            Ticket.user_id == user_id,
-            Ticket.status.in_(['done_approved', 'done_rejected', 'duplicate']),
-            Ticket.processing_result.isnot(None)
-        ).all()
-        
-        # Verificar cada ticket existente
-        for existing_ticket in existing_tickets:
-            existing_result = existing_ticket.processing_result or {}
-            existing_productos = existing_result.get('productos', [])
-            existing_fecha = existing_result.get('fecha', '')
-            
-            # Verificar que tenga productos y fecha
-            if existing_productos and existing_fecha:
-                try:
-                    # Parsear fecha del ticket existente
-                    if ':' in existing_fecha:
-                        existing_datetime = datetime.strptime(existing_fecha, "%d/%m/%Y %H:%M")
-                    else:
-                        existing_datetime = datetime.strptime(existing_fecha, "%d/%m/%Y")
-                    
-                    # Verificar si está en la ventana de tiempo (±5 minutos)
-                    time_window_start = purchase_datetime - timedelta(minutes=5)
-                    time_window_end = purchase_datetime + timedelta(minutes=5)
-                    
-                    if time_window_start <= existing_datetime <= time_window_end:
-                        # Verificar si los productos coinciden
-                        existing_productos_hash = hash(tuple(sorted([str(p) for p in existing_productos])))
-                        
-                        if existing_productos_hash == productos_hash:
-                            return {
-                                "is_duplicate": True, 
-                                "reason": f"Ticket duplicado encontrado: fecha={existing_fecha}, productos={len(existing_productos)}"
-                            }
-                except ValueError:
-                    continue
-        
-        return {"is_duplicate": False, "reason": "No se encontraron duplicados"}
-        
-    except Exception as e:
-        return {"is_duplicate": False, "reason": f"Error verificando duplicados: {e}"}
-
-@app.patch("/tickets/{ticket_id}/mark-duplicate")
-def mark_ticket_as_duplicate(
-    ticket_id: uuid.UUID,
-    request: dict,
-    db: Session = Depends(get_db)
-):
-    """Marcar un ticket como duplicado"""
-    try:
-        # Obtener ticket
-        ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
-        if not ticket:
-            raise HTTPException(status_code=404, detail="Ticket no encontrado")
-        
-        if ticket.status != "pending":
-            raise HTTPException(status_code=400, detail="Ticket ya procesado")
-        
-        # Extraer datos del request
-        processing_result = request.get('processing_result', {})
-        status_message = request.get('status_message', 'Ticket duplicado detectado')
-        
-        # Marcar como duplicado
-        ticket.status = "duplicate"
-        ticket.processing_result = processing_result
-        ticket.updated_at = datetime.now()
-        
-        db.commit()
-        db.refresh(ticket)
-        
-        return {
-            "message": "Ticket marcado como duplicado",
-            "ticket": TicketResponse.from_orm(ticket)
-        }
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error marcando ticket como duplicado: {str(e)}") 
+    } 

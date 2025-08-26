@@ -50,17 +50,34 @@ const TicketHistory: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      const url = statusFilter === 'all' 
-        ? `${API_CONFIG.TICKET_SERVICE_URL}/tickets/history/${user?.id}`
-        : `${API_CONFIG.TICKET_SERVICE_URL}/tickets/history/${user?.id}?status=${statusFilter}`;
+      if (!user?.id) {
+        console.error('No hi ha usuari autenticat');
+        setError('No hi ha usuari autenticat');
+        setTickets([]);
+        return;
+      }
       
-      const response = await fetch(url);
+      const url = statusFilter === 'all' 
+        ? `${API_CONFIG.TICKET_SERVICE_URL}/tickets/history/${user.id}`
+        : `${API_CONFIG.TICKET_SERVICE_URL}/tickets/history/${user.id}?status=${statusFilter}`;
+      
+      console.log('Carregant historial de tickets per usuari:', user.id);
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
       
       if (!response.ok) {
-        throw new Error('Error en obtenir l\'historial de tiquets');
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        throw new Error(`Error en obtenir l'historial de tiquets: ${response.status} ${response.statusText}`);
       }
       
       const data = await response.json();
+      console.log('Dades rebudes:', data);
       
       // Validar y limpiar los datos recibidos
       const validatedTickets = Array.isArray(data) ? data.filter(ticket => {
